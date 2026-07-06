@@ -258,7 +258,7 @@ editor.
 
 ### Phase 1 — First playable in editor
 
-1. Open `MountHope.uproject` in UE 5.6+ and compile (`Scripts/build.sh` or editor).
+1. Open `MountHope.uproject` in UE 5.8 and compile (`Scripts/build.sh` or editor).
 2. Create `/Game/Maps/MH_VerticalSlice` as an Open World map.
 3. Add Blueprint children for `MHPlayerCharacter` and `MHVehiclePawn` with
    placeholder meshes and a Chaos vehicle setup.
@@ -303,7 +303,7 @@ patterns live in `MountHope_Unreal/`; do not add new features to the old tree.
 ## Local compile & package
 
 ```bash
-export UE_ROOT="/path/to/UE_5.6"
+export UE_ROOT="/path/to/UE_5.8"
 ./MountHope_Unreal/Scripts/build.sh
 
 # Package (after editor content exists):

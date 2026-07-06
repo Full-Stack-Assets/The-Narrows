@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Compile Mount Hope when Unreal Engine is installed locally.
-# Set UE_ROOT to your engine install (e.g. /Users/Shared/Epic Games/UE_5.6).
+# Set UE_ROOT to your engine install (e.g. /Users/Shared/Epic Games/UE_5.8).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -9,7 +9,7 @@ UPROJECT="${PROJECT_ROOT}/MountHope.uproject"
 
 if [[ -z "${UE_ROOT:-}" ]]; then
   echo "ERROR: UE_ROOT is not set. Point it at your Unreal Engine install directory." >&2
-  echo "Example: export UE_ROOT=\"/Users/Shared/Epic Games/UE_5.6\"" >&2
+  echo "Example: export UE_ROOT=\"/Users/Shared/Epic Games/UE_5.8\"" >&2
   exit 1
 fi
 

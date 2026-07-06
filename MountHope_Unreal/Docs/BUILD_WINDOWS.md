@@ -2,8 +2,8 @@
 
 ## Prerequisites
 
-1. **Epic Games Launcher** with **Unreal Engine 5.6+** installed  
-   Typical path: `C:\Program Files\Epic Games\UE_5.6`
+1. **Epic Games Launcher** with **Unreal Engine 5.8** installed  
+   Typical path: `C:\Program Files\Epic Games\UE_5.8`
 2. **Visual Studio 2022** with the **Game development with C++** workload  
    (Desktop development with C++ is the minimum; include Windows 10/11 SDK.)
 3. This repo cloned with the full folder layout (`QUAHOG_Web/`, `quahog-project-files/`, etc.)
@@ -29,7 +29,7 @@ cd MountHope_Unreal
 The script auto-detects `C:\Program Files\Epic Games\UE_5.x`. To pin a specific version:
 
 ```powershell
-$env:UE_ROOT = "C:\Program Files\Epic Games\UE_5.6"
+$env:UE_ROOT = "C:\Program Files\Epic Games\UE_5.8"
 .\Scripts\build.ps1
 ```
 
@@ -67,7 +67,7 @@ See `Docs/EDITOR_SETUP.md` for the full checklist.
 After `/Game/Maps/MH_VerticalSlice` and vehicle Blueprints exist:
 
 ```powershell
-$env:UE_ROOT = "C:\Program Files\Epic Games\UE_5.6"
+$env:UE_ROOT = "C:\Program Files\Epic Games\UE_5.8"
 .\Scripts\package.ps1
 ```
 
@@ -78,7 +78,7 @@ Output: `MountHope_Unreal\Packaged\Win64\`
 | Problem | Fix |
 | --- | --- |
 | `MountHope could not be compiled` | Install VS 2022 C++ workload; right-click `.uproject` → **Generate Visual Studio project files**; open `MountHope.sln` and build **Development Editor**. |
-| `UE_5.6 not found` | Set `$env:UE_ROOT` to your actual engine folder from Epic Launcher → Library → **Engine version** → **Browse**. |
+| `UE_5.8 not found` | Set `$env:UE_ROOT` to your actual engine folder from Epic Launcher → Library → **Engine version** → **Browse**. |
 | Live Coding blocks build | Close the editor, or disable Live Coding under **Editor Preferences → Live Coding**. |
 | Slice JSON missing at runtime | Keep repo layout intact; `MHGameInstance` loads `../QUAHOG_Web/public/slice-newbedford.json` relative to the project. |
 | Python scripts fail | Enable Python Editor Script Plugin; compile C++ first so `MHPlayerCharacter` etc. exist. |

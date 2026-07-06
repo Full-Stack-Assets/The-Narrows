@@ -2,7 +2,7 @@
 """
 Create Enhanced Input assets for Mount Hope.
 
-Run inside Unreal Editor 5.6+ (Python Editor Script Plugin):
+Run inside Unreal Editor 5.8 (Python Editor Script Plugin):
   Tools → Execute Python Script → select this file
 
 Creates /Game/Input/IMC_Default plus IA_Move, IA_Look, IA_Sprint, IA_Interact,

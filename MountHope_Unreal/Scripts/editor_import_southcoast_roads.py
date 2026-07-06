@@ -2,7 +2,7 @@
 """
 Import bounded road splines from southcoast-roads.json (full OSM road network).
 
-Run inside Unreal Editor 5.6+ with Python Editor Script Plugin enabled.
+Run inside Unreal Editor 5.8 with Python Editor Script Plugin enabled.
 
 Filters roads to a configurable center/radius in southcoast meter coordinates,
 then spawns spline actors using the project ground plane (X/Z horizontal, Y up).

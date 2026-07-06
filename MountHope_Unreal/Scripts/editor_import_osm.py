@@ -2,7 +2,7 @@
 """
 Import OSM graybox geometry and optional slice road splines into the vertical slice.
 
-Run inside Unreal Editor 5.6+ (Python Editor Script Plugin):
+Run inside Unreal Editor 5.8 (Python Editor Script Plugin):
   Tools → Execute Python Script → select this file
 
 Steps performed:

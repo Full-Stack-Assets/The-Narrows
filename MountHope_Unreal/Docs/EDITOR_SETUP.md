@@ -5,7 +5,7 @@ code scaffold into a graybox you can walk and drive in Play-In-Editor (PIE).
 
 **Prerequisites**
 
-- Unreal Engine 5.6+ installed
+- Unreal Engine 5.8 installed
 - Project compiled (`./Scripts/build.sh` or editor compile on first open)
 - `python3 Scripts/validate_scaffold.py` passes
 
@@ -36,7 +36,7 @@ Then complete manual vehicle mesh/Chaos wheel setup (§4) and press **Play**.
 ### 1. Compile and open
 
 ```bash
-export UE_ROOT="/path/to/UE_5.6"
+export UE_ROOT="/path/to/UE_5.8"
 ./MountHope_Unreal/Scripts/build.sh
 ```
 
