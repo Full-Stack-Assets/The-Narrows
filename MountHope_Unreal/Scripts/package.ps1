@@ -18,9 +18,10 @@ if (-not $ArchiveDir) {
 
 if (-not $UeRoot) {
     $candidates = @(
-        "C:\Program Files\Epic Games\UE_5.6",
-        "C:\Program Files\Epic Games\UE_5.7",
         "C:\Program Files\Epic Games\UE_5.8",
+        "C:\Program Files\Epic Games\UE_5.7",
+        "C:\Program Files\Epic Games\UE_5.6",
+        "D:\Epic Games\UE_5.8",
         "D:\Epic Games\UE_5.6"
     )
     foreach ($path in $candidates) {
@@ -32,7 +33,7 @@ if (-not $UeRoot) {
 }
 
 if (-not $UeRoot) {
-    Write-Error "Set UE_ROOT to your engine install, e.g. `$env:UE_ROOT = 'C:\Program Files\Epic Games\UE_5.6'"
+    Write-Error "Set UE_ROOT to your engine install, e.g. `$env:UE_ROOT = 'C:\Program Files\Epic Games\UE_5.8'"
 }
 
 $RunUat = Join-Path $UeRoot "Engine\Build\BatchFiles\RunUAT.bat"

@@ -1,6 +1,6 @@
 {
   "FileVersion": 3,
-  "EngineAssociation": "5.6",
+  "EngineAssociation": "5.8",
   "Category": "Games",
   "Description": "Mount Hope Unreal vertical slice for a single-player PC/console open-world crime game.",
   "Modules": [

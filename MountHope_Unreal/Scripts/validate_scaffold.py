@@ -143,6 +143,9 @@ def load_json(relative_path: str) -> dict:
         fail(f"{relative_path} is invalid JSON: {exc}")
 
 
+EXPECTED_ENGINE = "5.8"
+
+
 def validate_uproject() -> None:
     descriptor = load_json("MountHope.uproject")
 
@@ -158,6 +161,12 @@ def validate_uproject() -> None:
     missing_plugins = EXPECTED_PLUGINS - enabled_plugins
     if missing_plugins:
         fail(f"MountHope.uproject is missing plugins: {sorted(missing_plugins)}")
+
+    if descriptor.get("EngineAssociation") != EXPECTED_ENGINE:
+        fail(
+            f"MountHope.uproject EngineAssociation must be {EXPECTED_ENGINE}, "
+            f"got {descriptor.get('EngineAssociation')!r}"
+        )
 
 
 def validate_required_files() -> None:

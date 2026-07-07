@@ -2,7 +2,7 @@
 """
 Mount Hope — vertical-slice editor bootstrap.
 
-Run inside Unreal Editor 5.6+ with the Python Editor Script Plugin enabled:
+Run inside Unreal Editor 5.8 with the Python Editor Script Plugin enabled:
   Tools → Execute Python Script → select this file
 
 Creates /Game/Maps/MH_VerticalSlice, content folders, a player start, and a

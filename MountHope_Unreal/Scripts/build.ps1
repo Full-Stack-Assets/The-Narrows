@@ -1,7 +1,7 @@
 # Compile Mount Hope on Windows when Unreal Engine is installed.
 # Usage:
 #   .\Scripts\build.ps1
-#   $env:UE_ROOT = "D:\Epic\UE_5.6"; .\Scripts\build.ps1
+#   $env:UE_ROOT = "D:\Epic\UE_5.8"; .\Scripts\build.ps1
 param(
     [string]$UeRoot = $env:UE_ROOT,
     [string]$Platform = $(if ($env:PLATFORM) { $env:PLATFORM } else { "Win64" }),
@@ -23,15 +23,16 @@ function Find-UnrealEngineRoot {
     }
 
     $candidates = @(
-        "C:\Program Files\Epic Games\UE_5.6",
-        "C:\Program Files\Epic Games\UE_5.7",
         "C:\Program Files\Epic Games\UE_5.8",
+        "C:\Program Files\Epic Games\UE_5.7",
+        "C:\Program Files\Epic Games\UE_5.6",
         "C:\Program Files\Epic Games\UE_5.5",
-        "D:\Epic Games\UE_5.6",
-        "D:\Epic Games\UE_5.7",
         "D:\Epic Games\UE_5.8",
-        "E:\Epic Games\UE_5.6",
-        "E:\Epic Games\UE_5.7"
+        "D:\Epic Games\UE_5.7",
+        "D:\Epic Games\UE_5.6",
+        "E:\Epic Games\UE_5.8",
+        "E:\Epic Games\UE_5.7",
+        "E:\Epic Games\UE_5.6"
     )
 
     foreach ($path in $candidates) {
@@ -60,10 +61,10 @@ if (-not $UeRoot) {
     Write-Error @"
 Unreal Engine not found.
 
-Install UE 5.6+ from Epic Games Launcher, then either:
+Install UE 5.8 from Epic Games Launcher, then either:
   1. Re-run this script (auto-detects C:\Program Files\Epic Games\UE_5.x), or
   2. Set UE_ROOT first:
-       `$env:UE_ROOT = 'C:\Program Files\Epic Games\UE_5.6'
+       `$env:UE_ROOT = 'C:\Program Files\Epic Games\UE_5.8'
        .\Scripts\build.ps1
 "@
 }

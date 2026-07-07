@@ -31,7 +31,7 @@ the Unreal project is the premium PC/console path.
 
 | Path | Purpose |
 | --- | --- |
-| `MountHope.uproject` | UE 5.6 project descriptor with Enhanced Input, Chaos Vehicles, Mass AI/Entity, and Water enabled. |
+| `MountHope.uproject` | UE 5.8 project descriptor with Enhanced Input, Chaos Vehicles, Mass AI/Entity, and Water enabled. |
 | `Source/MountHope/` | Hybrid C++ foundation for game mode, player pawn, vehicle pawn, interactions, missions, economy, and OSM world source metadata. |
 | `Config/` | Initial maps, renderer, navigation, packaging, and input settings. |
 | `Content/` | Empty UE asset root; create maps, Blueprints, materials, vehicles, MetaHumans, and imported OSM meshes here in the editor. |
@@ -50,7 +50,7 @@ GitHub Actions runs `Scripts/validate_scaffold.py` on changes under
 python3 MountHope_Unreal/Scripts/validate_scaffold.py
 ```
 
-### Local compile (requires Unreal Engine 5.6+)
+### Local compile (requires Unreal Engine 5.8)
 
 **Windows (PowerShell):**
 
@@ -64,7 +64,7 @@ See [`Docs/BUILD_WINDOWS.md`](Docs/BUILD_WINDOWS.md) for Visual Studio prerequis
 **macOS / Linux:**
 
 ```bash
-export UE_ROOT="/path/to/UE_5.6"
+export UE_ROOT="/path/to/UE_5.8"
 ./MountHope_Unreal/Scripts/build.sh
 ```
 
@@ -75,8 +75,7 @@ See `Docs/IMPROVEMENT_PLAN.md` for the full roadmap and packaging notes.
 
 ## Open in Unreal
 
-1. Install the latest stable Unreal Engine 5 version available to your desktop
-   environment. This scaffold targets UE 5.6 as the easiest current baseline.
+1. Install Unreal Engine 5.8 via the Epic Games Launcher.
 2. Open `MountHope_Unreal/MountHope.uproject`.
 3. Let Unreal generate IDE files and compile the `MountHope` module.
 4. Create `/Game/Maps/MH_VerticalSlice` as an Open World map.
