@@ -59,9 +59,13 @@ def main() -> None:
             EXTENT_Z_CM / 100.0,
         )
     )
-    unreal.EditorLevelLibrary.build_paths()
     unreal.EditorLoadingAndSavingUtils.save_dirty_packages(True, True)
-    log("Nav bounds placed. Press P to visualize; build paths if needed.")
+    # RecastNavMesh is configured RuntimeGeneration=Dynamic (Config/DefaultEngine.ini),
+    # so the navmesh generates around this bounds volume at runtime — no explicit
+    # editor bake is needed for PIE. There is no stable Python nav-build call; for a
+    # static bake use the editor's Build > Build Paths menu.
+    log("Nav bounds placed. Press P to visualize. Dynamic nav builds at runtime; "
+        "use Build > Build Paths for a static bake.")
 
 
 if __name__ == "__main__":

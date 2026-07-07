@@ -86,22 +86,33 @@ def spawn_road_spline(road: dict, index: int) -> None:
         start,
         unreal.Rotator(0.0, 0.0, 0.0),
     )
+    if not actor:
+        return
 
     highway = road.get("highway", "road")
     label_name = road.get("name", highway) or highway
     actor.set_actor_label(f"MH_SC_Road_{index:04d}_{label_name[:20]}")
 
-    spline = actor.add_component_by_class(
-        unreal.SplineComponent,
-        manual_attachment=False,
-        relative_transform=unreal.Transform(),
-    )
+    # Optional debug spline; instance-component creation via Python varies across
+    # engine builds, so degrade gracefully rather than aborting the whole import.
+    add_component = getattr(actor, "add_component_by_class", None)
+    if add_component is None:
+        warn("Actor.add_component_by_class unavailable in this build; skipping debug road spline.")
+        return
+    try:
+        spline = add_component(unreal.SplineComponent, False, unreal.Transform(), False)
+    except Exception as exc:  # pragma: no cover - editor-only
+        warn(f"Could not add spline component ({exc}); skipping debug road spline.")
+        return
+    if not spline:
+        return
 
+    actor_transform = actor.get_actor_transform()
     for point in points:
         if len(point) < 2:
             continue
         world_point = southcoast_to_unreal(point[0], point[1])
-        local_point = actor.get_transform().inverse_transform_position(world_point)
+        local_point = actor_transform.inverse_transform_position(world_point)
         spline.add_spline_point(local_point, unreal.SplineCoordinateSpace.LOCAL, False)
 
     spline.set_closed_loop(False, False)

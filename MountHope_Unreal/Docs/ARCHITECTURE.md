@@ -62,7 +62,7 @@ growing a parallel one.
 
 | Subsystem | Owns |
 | --- | --- |
-| `UMHWantedSubsystem` | Heat accumulation, fractional decay, 5-star wanted level, `OnWantedLevelChanged`. |
+| `UMHWantedSubsystem` | Heat accumulation, fractional decay, 5-star wanted level, `OnWantedLevelChanged`. Drives police escalation: `AMHPoliceSpawnerActor` maps the star level to a tier (count / health / armed) and `AMHPoliceUnitPawn` runs a Pursue/Attack state machine (armed units fire with a line-of-sight check). The player's armor soaks damage before health, and the pistol can neutralize pursuers. |
 | `UMHOpenWorldSubsystem` | Map-source profile metadata (kept in sync with the slice load path). |
 
 **Actors** are the spawned, tickable things (player, vehicle, pedestrians and

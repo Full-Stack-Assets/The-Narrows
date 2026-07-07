@@ -55,7 +55,11 @@ def load_or_create_action(name: str, value_type: unreal.InputActionValueType) ->
         return action
 
     asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
-    factory = unreal.InputActionFactory()
+    # The Python-exposed factory is named "InputAction_Factory" (underscore); fall
+    # back to a null factory (works for these simple data assets) if it is not
+    # present in this engine build.
+    factory_cls = getattr(unreal, "InputAction_Factory", None)
+    factory = factory_cls() if factory_cls is not None else None
     action = asset_tools.create_asset(name, INPUT_DIR, unreal.InputAction, factory)
     if action is None:
         raise RuntimeError(f"Failed to create Input Action: {name}")
@@ -73,7 +77,8 @@ def load_or_create_imc() -> unreal.InputMappingContext:
         return imc
 
     asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
-    factory = unreal.InputMappingContextFactory()
+    factory_cls = getattr(unreal, "InputMappingContext_Factory", None)
+    factory = factory_cls() if factory_cls is not None else None
     imc = asset_tools.create_asset("IMC_Default", INPUT_DIR, unreal.InputMappingContext, factory)
     if imc is None:
         raise RuntimeError("Failed to create Input Mapping Context")

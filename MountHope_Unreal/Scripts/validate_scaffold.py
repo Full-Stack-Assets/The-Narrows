@@ -102,6 +102,7 @@ REQUIRED_FILES = [
     "Source/MountHope/Tests/MHGameStateSubsystemTest.cpp",
     "Source/MountHope/Tests/MHTimeOfDaySubsystemTest.cpp",
     "Source/MountHope/Tests/MHReputationSubsystemTest.cpp",
+    "Source/MountHope/Tests/MHPoliceTest.cpp",
     "Scripts/build.sh",
     "Scripts/build.ps1",
     "Scripts/build.bat",
@@ -400,6 +401,8 @@ def validate_source_contract() -> None:
         fail("MHPlayerCharacter.cpp does not implement the pistol combat loop")
     if "LineTraceSingleByChannel" not in player_source:
         fail("MHPlayerCharacter.cpp does not raycast for pistol hit detection")
+    if "AMHPoliceUnitPawn" not in player_source:
+        fail("MHPlayerCharacter.cpp pistol does not damage police units")
 
     if "AMHPoliceSpawnerActor" not in game_mode_source:
         fail("MHGameModeBase.cpp does not spawn the police pursuit spawner")
@@ -407,10 +410,19 @@ def validate_source_contract() -> None:
     police_spawner_source = read_text("Source/MountHope/MHPoliceSpawnerActor.cpp")
     if "GetDesiredUnitCount" not in police_spawner_source or "GetWantedLevel" not in police_spawner_source:
         fail("MHPoliceSpawnerActor.cpp does not scale pursuit units with wanted level")
+    for symbol in ("GetTierForWantedLevel", "ConfigureForTier"):
+        if symbol not in police_spawner_source:
+            fail(f"MHPoliceSpawnerActor.cpp is missing wanted-tier escalation: {symbol}")
 
     police_unit_source = read_text("Source/MountHope/MHPoliceUnitPawn.cpp")
     if "TryCatchPlayer" not in police_unit_source or "ApplyDamage" not in police_unit_source:
         fail("MHPoliceUnitPawn.cpp does not chase and apply catch pressure")
+    for symbol in ("TryShootPlayer", "ConfigureForTier", "IsDead", "EMHPoliceState"):
+        if symbol not in police_unit_source:
+            fail(f"MHPoliceUnitPawn.cpp is missing combat-AI support: {symbol}")
+
+    if "AddArmor" not in game_state_source or "Armor" not in game_state_source:
+        fail("MHGameStateSubsystem.cpp is missing the armor damage-soak system")
 
 
 def validate_default_config() -> None:
@@ -552,6 +564,7 @@ AUTOMATION_TESTS = [
     "Source/MountHope/Tests/MHGameStateSubsystemTest.cpp",
     "Source/MountHope/Tests/MHTimeOfDaySubsystemTest.cpp",
     "Source/MountHope/Tests/MHReputationSubsystemTest.cpp",
+    "Source/MountHope/Tests/MHPoliceTest.cpp",
 ]
 
 

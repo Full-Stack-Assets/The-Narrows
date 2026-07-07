@@ -279,9 +279,14 @@ void UMHGameHudWidget::RefreshObjectiveAndStatus()
         }
 
         StatusString = FString::Printf(
-            TEXT("Cash: $%d  |  Weather: %s"),
+            TEXT("Cash: $%d  |  HP: %d  |  Weather: %s"),
             GameState->Cash,
+            FMath::RoundToInt(GameState->Health),
             *WeatherLabel);
+        if (GameState->Armor > 0.0f)
+        {
+            StatusString += FString::Printf(TEXT("  |  Armor: %d"), FMath::RoundToInt(GameState->Armor));
+        }
     }
 
     if (const AMHPlayerCharacter* PlayerCharacter = Cast<AMHPlayerCharacter>(GetOwningPlayerPawn()))

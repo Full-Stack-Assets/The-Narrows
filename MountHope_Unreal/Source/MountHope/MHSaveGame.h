@@ -17,6 +17,9 @@ public:
     float Health = 100.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mount Hope|Save")
+    float Armor = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mount Hope|Save")
     float PoliceHeat = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mount Hope|Save")

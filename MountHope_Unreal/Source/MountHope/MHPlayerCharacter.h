@@ -126,6 +126,9 @@ protected:
     float PistolVehicleDamage = 25.0f;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Mount Hope|Combat")
+    float PistolCopDamage = 20.0f;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Mount Hope|Combat")
     int32 PistolCrimeSeverity = 40;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mount Hope|Audio")

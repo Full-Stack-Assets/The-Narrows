@@ -23,11 +23,23 @@ void AMHPoliceSpawnerActor::BeginPlay()
         true);
 }
 
+FMHPoliceTier AMHPoliceSpawnerActor::GetTierForWantedLevel(int32 WantedLevel) const
+{
+    FMHPoliceTier Tier;
+    const int32 Stars = FMath::Clamp(WantedLevel, 0, 5);
+    // One pursuer per star; toughness ramps with stars; firearms appear at 3+.
+    Tier.UnitCount = Stars;
+    Tier.UnitHealth = 25.0f + Stars * 9.0f;
+    Tier.bArmed = Stars >= 3;
+    return Tier;
+}
+
 int32 AMHPoliceSpawnerActor::GetDesiredUnitCount() const
 {
     const UWorld* World = GetWorld();
     const UMHWantedSubsystem* WantedSubsystem = World ? World->GetSubsystem<UMHWantedSubsystem>() : nullptr;
-    return WantedSubsystem ? FMath::Min(WantedSubsystem->GetWantedLevel(), 5) : 0;
+    const int32 WantedLevel = WantedSubsystem ? WantedSubsystem->GetWantedLevel() : 0;
+    return GetTierForWantedLevel(WantedLevel).UnitCount;
 }
 
 void AMHPoliceSpawnerActor::ManagePoliceUnits()
@@ -69,6 +81,10 @@ void AMHPoliceSpawnerActor::ManagePoliceUnits()
         ActiveUnits.RemoveAt(LastIndex);
     }
 
+    // Profile for units spawned this pass (health/armament scale with wanted level).
+    const UMHWantedSubsystem* WantedSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UMHWantedSubsystem>() : nullptr;
+    const FMHPoliceTier Tier = GetTierForWantedLevel(WantedSubsystem ? WantedSubsystem->GetWantedLevel() : 0);
+
     const float SpawnDistanceUnrealUnits = SpawnDistanceMeters * 100.0f;
     const UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
     while (ActiveUnits.Num() < DesiredCount)
@@ -98,6 +114,7 @@ void AMHPoliceSpawnerActor::ManagePoliceUnits()
         {
             break;
         }
+        NewUnit->ConfigureForTier(Tier.UnitHealth, Tier.bArmed);
         ActiveUnits.Add(NewUnit);
     }
 }
