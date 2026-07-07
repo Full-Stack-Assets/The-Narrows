@@ -23,13 +23,15 @@
           "crimeSeverity": 15
         },
         {
-          "text": "Ambush! Steal a car and get out of here",
+          "text": "Ambush! Steal a car and get out before they box you in",
           "target": [0.0, 0.0, 0.0],
           "radius": 0.0,
           "needVehicle": true,
           "reward": 0,
           "crime": true,
-          "crimeSeverity": 10
+          "crimeSeverity": 10,
+          "objectiveType": "timed",
+          "timeLimitSeconds": 45
         },
         {
           "text": "Shake the heat - reach the safehouse",
@@ -123,12 +125,25 @@
           "crimeSeverity": 20
         },
         {
+          "text": "Hold off Sully's shooters while the score cools",
+          "target": [0.0, 0.0, 0.0],
+          "radius": 0.0,
+          "needVehicle": false,
+          "reward": 300,
+          "crime": true,
+          "crimeSeverity": 10,
+          "objectiveType": "survive",
+          "timeLimitSeconds": 20
+        },
+        {
           "text": "Lose the cops, then go to ground at the safehouse",
           "target": [-188.0, 0.0, 40.0],
           "radius": 12.0,
           "needVehicle": true,
           "reward": 1200,
-          "requireNoHeat": true
+          "requireNoHeat": true,
+          "objectiveType": "timed",
+          "timeLimitSeconds": 75
         }
       ]
     },

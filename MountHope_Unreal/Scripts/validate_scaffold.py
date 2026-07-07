@@ -215,6 +215,15 @@ def validate_source_contract() -> None:
         if symbol not in game_mode_source:
             fail(f"MHGameModeBase.cpp is missing mission helper: {symbol}")
 
+    for symbol in ("FailCurrentMission", "ApplyObjectiveCompletion", "TickStepTimer"):
+        if symbol not in game_mode_source:
+            fail(f"MHGameModeBase.cpp is missing mission-failure/timed-objective support: {symbol}")
+
+    mission_source = read_text("Source/MountHope/MHMissionSubsystem.cpp")
+    for symbol in ("RestartCurrentMission", "IsMissionInProgress"):
+        if symbol not in mission_source:
+            fail(f"MHMissionSubsystem.cpp is missing: {symbol}")
+
     game_instance = read_text("Source/MountHope/MHGameInstance.cpp")
     if "LoadDialogueFromJson" not in game_instance:
         fail("MHGameInstance.cpp does not bootstrap dialogue JSON")
@@ -358,6 +367,8 @@ def validate_source_contract() -> None:
 
     if "HandleMissionCompleted" not in hud_source or "ToastTextBlock" not in hud_source:
         fail("MHGameHudWidget.cpp does not display mission-completion toasts")
+    if "HandleMissionFailed" not in hud_source or "OnMissionFailed" not in hud_source:
+        fail("MHGameHudWidget.cpp does not surface mission-failure toasts")
     if "RefreshMinimap" not in hud_source or "MinimapImage" not in hud_source:
         fail("MHGameHudWidget.cpp does not wire the minimap")
 
@@ -426,6 +437,11 @@ def validate_missions() -> None:
                 fail(f"Mission step '{step.get('text')}' flags crime without crimeSeverity")
             if step.get("weatherOnStart") not in (None, "Clear", "DenseFog", "CoastalRain", "Noreaster"):
                 fail(f"Mission step '{step.get('text')}' has an unknown weatherOnStart value")
+            objective_type = step.get("objectiveType")
+            if objective_type not in (None, "reach", "timed", "survive"):
+                fail(f"Mission step '{step.get('text')}' has an unknown objectiveType: {objective_type}")
+            if objective_type in ("timed", "survive") and not step.get("timeLimitSeconds", 0) > 0:
+                fail(f"Mission step '{step.get('text')}' is {objective_type} but has no positive timeLimitSeconds")
 
     for required_title in ("Off the Boat", "Gloria", "Big Mamie"):
         if required_title not in titles:

@@ -25,6 +25,17 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Mount Hope|Mission")
     bool TryCompleteVehicleObjective(bool bPlayerInVehicle);
 
+    // Fail the in-progress mission (if any): restart it from its first step and
+    // broadcast UMHMissionSubsystem::OnMissionFailed. No-op if no mission active.
+    UFUNCTION(BlueprintCallable, Category = "Mount Hope|Mission")
+    void FailCurrentMission(const FString& Reason);
+
+    UFUNCTION(BlueprintPure, Category = "Mount Hope|Mission")
+    bool IsCurrentStepTimed() const { return bStepTimerActive; }
+
+    UFUNCTION(BlueprintPure, Category = "Mount Hope|Mission")
+    float GetCurrentStepTimeRemaining() const { return StepTimeRemaining; }
+
 protected:
     UPROPERTY(Transient)
     TObjectPtr<AMHMissionTriggerActor> ObjectiveTrigger = nullptr;
@@ -41,12 +52,21 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mount Hope|Audio")
     TObjectPtr<USoundBase> BustedOrWastedSound;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mount Hope|Audio")
+    TObjectPtr<USoundBase> MissionFailedSound;
+
 private:
     bool IsWorldTargetObjective(const FMHMissionStep& Step) const;
     void RefreshObjectiveTrigger();
     void RespawnAtSafehouseIfAvailable();
     void ApplyWeatherFromString(const FString& WeatherName) const;
     void TickBustedTimer(float DeltaSeconds);
+    void TickStepTimer(float DeltaSeconds);
+
+    // Post-gate objective completion (rewards, crime, reputation, advance,
+    // mission-complete, save, refresh). Shared by CompleteCurrentObjective (after
+    // its vehicle/heat gates) and the Survive-timer auto-complete path.
+    bool ApplyObjectiveCompletion();
 
     UFUNCTION()
     void HandlePlayerWasted();
@@ -58,4 +78,10 @@ private:
     void HandleHourChanged(int32 Hour);
 
     float TimeAtMaxWanted = 0.0f;
+
+    // Active-step countdown for Timed / Survive objectives. Armed by
+    // RefreshObjectiveTrigger whenever the current step changes.
+    bool bStepTimerActive = false;
+    bool bStepTimerIsSurvive = false;
+    float StepTimeRemaining = 0.0f;
 };
