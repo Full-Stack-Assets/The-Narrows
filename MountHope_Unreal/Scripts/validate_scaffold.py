@@ -95,7 +95,13 @@ REQUIRED_FILES = [
     "Docs/BUILD_WINDOWS.md",
     "Docs/EDITOR_SETUP.md",
     "Docs/IMPROVEMENT_PLAN.md",
+    "Docs/ARCHITECTURE.md",
     "Content/README.md",
+    "Source/MountHope/Tests/MHWantedSubsystemTest.cpp",
+    "Source/MountHope/Tests/MHMissionSubsystemTest.cpp",
+    "Source/MountHope/Tests/MHGameStateSubsystemTest.cpp",
+    "Source/MountHope/Tests/MHTimeOfDaySubsystemTest.cpp",
+    "Source/MountHope/Tests/MHReputationSubsystemTest.cpp",
     "Scripts/build.sh",
     "Scripts/build.ps1",
     "Scripts/build.bat",
@@ -540,6 +546,26 @@ def validate_economy() -> None:
             fail(f"Invalid dailyIncome for {bid}")
 
 
+AUTOMATION_TESTS = [
+    "Source/MountHope/Tests/MHWantedSubsystemTest.cpp",
+    "Source/MountHope/Tests/MHMissionSubsystemTest.cpp",
+    "Source/MountHope/Tests/MHGameStateSubsystemTest.cpp",
+    "Source/MountHope/Tests/MHTimeOfDaySubsystemTest.cpp",
+    "Source/MountHope/Tests/MHReputationSubsystemTest.cpp",
+]
+
+
+def validate_automation_tests() -> None:
+    for relative_path in AUTOMATION_TESTS:
+        text = read_text(relative_path)
+        if "IMPLEMENT_SIMPLE_AUTOMATION_TEST" not in text:
+            fail(f"{relative_path} declares no automation test")
+        if "WITH_DEV_AUTOMATION_TESTS" not in text:
+            fail(f"{relative_path} is not guarded by WITH_DEV_AUTOMATION_TESTS")
+        if "::RunTest" not in text:
+            fail(f"{relative_path} has no RunTest body")
+
+
 def validate_existing_data_links() -> None:
     for relative_path in EXPECTED_EXISTING_DATA:
         if not (REPO_ROOT / relative_path).exists():
@@ -559,6 +585,7 @@ def main() -> None:
     validate_collectibles()
     validate_radio_stations()
     validate_gameplay_tags()
+    validate_automation_tests()
     validate_existing_data_links()
     print("MountHope_Unreal scaffold validation passed")
 

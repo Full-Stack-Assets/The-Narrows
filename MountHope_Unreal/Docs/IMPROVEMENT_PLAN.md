@@ -361,6 +361,39 @@ Still not proven by a compile — a real UE 5.8 build is required, and the
 per-type *feel* (timer lengths, what counts as "in combat" for a survive beat)
 needs PIE tuning.
 
+### Seventh pass — automated tests, architecture docs, maintainability
+
+Turned the "expand + harden" directive into the parts that actually apply to a
+single-player UE game (this is not a scaling web backend, and there's still no
+engine in the sandbox to compile against), focusing on the biggest real gap:
+the C++ logic had no automated tests.
+
+- **UE automation test suite** (`Source/MountHope/Tests/*.cpp`, guarded by
+  `WITH_DEV_AUTOMATION_TESTS`) — real unit tests of the deterministic subsystem
+  logic, each driving a `NewObject` subsystem directly (no world needed):
+  - `MHWantedSubsystemTest` — includes a **regression test for the wanted-decay
+    bug** (heat must actually drop at 60 FPS) and the 5-star clamp.
+  - `MHMissionSubsystemTest` — step advance, campaign-complete boundary, and the
+    new restart-to-first-step behavior.
+  - `MHGameStateSubsystemTest` — cash clamp, buy-business + passive income, and
+    the lethal-damage "wasted" consequence.
+  - `MHTimeOfDaySubsystemTest` — midnight rollover and the day/night sun curve.
+  - `MHReputationSubsystemTest` — ±100 clamp and save-snapshot roundtrip.
+  They run in-editor / on a self-hosted UE runner (see `README.md` and
+  `ARCHITECTURE.md`), not in the Python CI, since they need the engine.
+- **`Docs/ARCHITECTURE.md`** — module map, subsystem responsibilities, the
+  delegate/data-driven/one-save-path patterns, the three-tier
+  validation-vs-compile model, and the deployment reality (real packaging needs a
+  self-hosted UE runner).
+- **Gate wiring** — `validate_scaffold.py` now requires the test files and
+  checks each declares an automation test guarded by `WITH_DEV_AUTOMATION_TESTS`;
+  `check_cpp.py` covers the new files structurally (73 files, still green).
+
+Deliberately *not* done: fabricated "microservices / horizontal-scaling /
+exponential-growth" scaffolding (doesn't map to a single-player game) or large
+new gameplay modules written blind (too risky without a compiler). Those wait
+for the editor loop.
+
 ### Audio cue hook points
 
 Mirroring the radio subsystem's "data ready, asset bound in editor" pattern:
