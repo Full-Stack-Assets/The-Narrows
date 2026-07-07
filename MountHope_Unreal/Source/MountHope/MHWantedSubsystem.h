@@ -67,5 +67,7 @@ private:
 
     float SecondsSinceLastCrime = 0.0f;
 
+    float PendingDecay = 0.0f;
+
     void RecalculateWantedLevel();
 };

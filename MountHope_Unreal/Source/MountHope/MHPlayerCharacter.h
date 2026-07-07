@@ -146,6 +146,9 @@ private:
     void InputLook(const FInputActionValue& Value);
     void InputSprintStart(const FInputActionValue& Value);
     void InputSprintStop(const FInputActionValue& Value);
+    void LegacySprintStart();
+    void LegacySprintStop();
+    void SetSprintRequested(bool bRequested);
     void InputInteract(const FInputActionValue& Value);
     void InputEnterExitVehicle(const FInputActionValue& Value);
     void InputRadioNextStation(const FInputActionValue& Value);

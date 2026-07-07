@@ -53,10 +53,17 @@ bool UMHDialogueSubsystem::LoadDialogueFromJson(const FString& RelativeOrAbsolut
             continue;
         }
 
+        FString ConversationIdString;
+        if (!ConversationObject->TryGetStringField(TEXT("id"), ConversationIdString) || ConversationIdString.IsEmpty())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("MountHope: Skipping dialogue conversation with missing/empty id"));
+            continue;
+        }
+
         FMHDialogueConversation Conversation;
-        Conversation.ConversationId = FName(*ConversationObject->GetStringField(TEXT("id")));
-        Conversation.Speaker = ConversationObject->GetStringField(TEXT("speaker"));
-        Conversation.Prompt = ConversationObject->GetStringField(TEXT("prompt"));
+        Conversation.ConversationId = FName(*ConversationIdString);
+        ConversationObject->TryGetStringField(TEXT("speaker"), Conversation.Speaker);
+        ConversationObject->TryGetStringField(TEXT("prompt"), Conversation.Prompt);
 
         const TArray<TSharedPtr<FJsonValue>>* LinesArray = nullptr;
         if (ConversationObject->TryGetArrayField(TEXT("lines"), LinesArray) && LinesArray)

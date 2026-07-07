@@ -5,6 +5,7 @@
 #include "MHMinimapCaptureActor.h"
 #include "MHMissionSubsystem.h"
 #include "MHMissionTriggerActor.h"
+#include "MHOpenWorldSubsystem.h"
 #include "MHPedestrianSpawnerActor.h"
 #include "MHPlayerCharacter.h"
 #include "MHPlayerController.h"
@@ -13,6 +14,7 @@
 #include "MHTimeOfDaySubsystem.h"
 #include "MHWantedSubsystem.h"
 #include "MHWeatherDirectorActor.h"
+#include "GameFramework/PlayerStart.h"
 #include "Sound/SoundBase.h"
 
 AMHGameModeBase::AMHGameModeBase()
@@ -39,6 +41,12 @@ void AMHGameModeBase::BeginPlay()
     }
 
     RefreshObjectiveTrigger();
+
+    if (const UMHOpenWorldSubsystem* OpenWorldSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UMHOpenWorldSubsystem>() : nullptr)
+    {
+        const FMHMapSourceProfile Profile = OpenWorldSubsystem->GetDefaultMapSource();
+        UE_LOG(LogTemp, Log, TEXT("MountHope: World source profile '%s' (%s)"), *Profile.Name.ToString(), *Profile.SourcePath);
+    }
 
     if (GetWorld())
     {
@@ -81,6 +89,11 @@ void AMHGameModeBase::BeginPlay()
     {
         GameStateSubsystem->OnPlayerWasted.AddDynamic(this, &AMHGameModeBase::HandlePlayerWasted);
         GameStateSubsystem->OnPlayerBusted.AddDynamic(this, &AMHGameModeBase::HandlePlayerBusted);
+    }
+
+    if (UMHTimeOfDaySubsystem* TimeOfDaySubsystem = GetGameInstance()->GetSubsystem<UMHTimeOfDaySubsystem>())
+    {
+        TimeOfDaySubsystem->OnHourChanged.AddDynamic(this, &AMHGameModeBase::HandleHourChanged);
     }
 }
 
@@ -156,6 +169,25 @@ void AMHGameModeBase::HandlePlayerBusted()
     RespawnAtSafehouseIfAvailable();
 }
 
+void AMHGameModeBase::HandleHourChanged(int32 Hour)
+{
+    // Pay out owned-business income once per in-game day (midnight rollover) rather than every
+    // hour tick.
+    if (Hour != 0)
+    {
+        return;
+    }
+
+    if (UMHGameStateSubsystem* GameStateSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMHGameStateSubsystem>() : nullptr)
+    {
+        const int32 PassiveIncome = GameStateSubsystem->GetPassiveDailyIncome();
+        if (PassiveIncome > 0)
+        {
+            GameStateSubsystem->AddCash(PassiveIncome);
+        }
+    }
+}
+
 void AMHGameModeBase::RespawnAtSafehouseIfAvailable()
 {
     if (!GetWorld())
@@ -163,15 +195,24 @@ void AMHGameModeBase::RespawnAtSafehouseIfAvailable()
         return;
     }
 
-    UMHGameStateSubsystem* GameStateSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMHGameStateSubsystem>() : nullptr;
-    if (!GameStateSubsystem || !GameStateSubsystem->bHasSafehouse)
+    APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+    if (!PlayerPawn)
     {
         return;
     }
 
-    if (APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0))
+    UMHGameStateSubsystem* GameStateSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMHGameStateSubsystem>() : nullptr;
+    if (GameStateSubsystem && GameStateSubsystem->bHasSafehouse)
     {
         PlayerPawn->SetActorLocation(GameStateSubsystem->SafehouseLocation);
+        return;
+    }
+
+    // No safehouse claimed yet: fall back to the level's player start so a wasted/busted
+    // consequence still moves the player instead of leaving them exactly where they died.
+    if (AActor* Start = UGameplayStatics::GetActorOfClass(GetWorld(), APlayerStart::StaticClass()))
+    {
+        PlayerPawn->SetActorLocation(Start->GetActorLocation());
     }
 }
 

@@ -9,6 +9,7 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Kismet/GameplayStatics.h"
+#include "MHCollectibleSubsystem.h"
 #include "MHDialogueSubsystem.h"
 #include "MHGameStateSubsystem.h"
 #include "MHMinimapCaptureActor.h"
@@ -170,6 +171,11 @@ void UMHGameHudWidget::BindSubsystemDelegates()
         MissionSubsystem->OnMissionCompleted.AddDynamic(this, &UMHGameHudWidget::HandleMissionCompleted);
     }
 
+    if (UMHCollectibleSubsystem* CollectibleSubsystem = GameInstance->GetSubsystem<UMHCollectibleSubsystem>())
+    {
+        CollectibleSubsystem->OnCollectibleFound.AddDynamic(this, &UMHGameHudWidget::HandleCollectibleFound);
+    }
+
     bDelegatesBound = true;
 }
 
@@ -197,6 +203,11 @@ void UMHGameHudWidget::UnbindSubsystemDelegates()
         if (UMHMissionSubsystem* MissionSubsystem = GameInstance->GetSubsystem<UMHMissionSubsystem>())
         {
             MissionSubsystem->OnMissionCompleted.RemoveDynamic(this, &UMHGameHudWidget::HandleMissionCompleted);
+        }
+
+        if (UMHCollectibleSubsystem* CollectibleSubsystem = GameInstance->GetSubsystem<UMHCollectibleSubsystem>())
+        {
+            CollectibleSubsystem->OnCollectibleFound.RemoveDynamic(this, &UMHGameHudWidget::HandleCollectibleFound);
         }
     }
 
@@ -329,7 +340,7 @@ void UMHGameHudWidget::SetDialogueLine(const FText& Speaker, const FText& Line)
         DialogueBox->SetVisibility(ESlateVisibility::HitTestInvisible);
     }
 
-    SetTextBlockContent(SpeakerTextBlock, FText::Format(FText::FromString(TEXT("{0}")), Speaker), false);
+    SetTextBlockContent(SpeakerTextBlock, Speaker, false);
     SetTextBlockContent(DialogueLineTextBlock, Line, false);
 }
 
@@ -411,6 +422,28 @@ void UMHGameHudWidget::HandleMissionCompleted(FString Title, FString CompletionM
         ? FString::Printf(TEXT("%s complete."), *Title)
         : CompletionMessage;
 
+    SetTextBlockContent(ToastTextBlock, FText::FromString(ToastLine), true);
+
+    if (UWorld* World = GetWorld())
+    {
+        World->GetTimerManager().SetTimer(ToastTimerHandle, this, &UMHGameHudWidget::ClearToast, 5.0f, false);
+    }
+}
+
+void UMHGameHudWidget::HandleCollectibleFound(FName ItemId, int32 CollectedCount, int32 TotalCount)
+{
+    FString DisplayName = ItemId.ToString();
+    UGameInstance* GameInstance = GetGameInstance();
+    if (UMHCollectibleSubsystem* CollectibleSubsystem = GameInstance ? GameInstance->GetSubsystem<UMHCollectibleSubsystem>() : nullptr)
+    {
+        FMHCollectibleRecord Record;
+        if (CollectibleSubsystem->FindCollectible(ItemId, Record) && !Record.DisplayName.IsEmpty())
+        {
+            DisplayName = Record.DisplayName;
+        }
+    }
+
+    const FString ToastLine = FString::Printf(TEXT("%s found (%d/%d)"), *DisplayName, CollectedCount, TotalCount);
     SetTextBlockContent(ToastTextBlock, FText::FromString(ToastLine), true);
 
     if (UWorld* World = GetWorld())

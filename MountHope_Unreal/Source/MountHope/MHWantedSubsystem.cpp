@@ -35,6 +35,7 @@ void UMHWantedSubsystem::ReportCrime(EMHCrimeType CrimeType, int32 Severity)
     const int32 PreviousLevel = WantedLevel;
     Heat = FMath::Clamp(Heat + Severity * Multiplier, 0, 100);
     SecondsSinceLastCrime = 0.0f;
+    PendingDecay = 0.0f;
     RecalculateWantedLevel();
 
     if (WantedLevel != PreviousLevel)
@@ -70,6 +71,7 @@ void UMHWantedSubsystem::ClearWantedState()
     Heat = 0;
     WantedLevel = 0;
     SecondsSinceLastCrime = 0.0f;
+    PendingDecay = 0.0f;
 
     if (WantedLevel != PreviousLevel)
     {
@@ -90,8 +92,19 @@ void UMHWantedSubsystem::TickWantedDecay(float DeltaSeconds)
         return;
     }
 
+    // DecayPerSecond * DeltaSeconds is well under 1 heat/frame at normal framerates, so the
+    // fractional remainder must be accumulated across ticks rather than rounded away each frame
+    // (otherwise it truncates to 0 every tick and heat never decays).
+    PendingDecay += DecayPerSecond * DeltaSeconds;
+    const int32 WholeDecay = FMath::FloorToInt(PendingDecay);
+    if (WholeDecay <= 0)
+    {
+        return;
+    }
+    PendingDecay -= WholeDecay;
+
     const int32 PreviousLevel = WantedLevel;
-    Heat = FMath::Clamp(Heat - FMath::RoundToInt(DecayPerSecond * DeltaSeconds), 0, 100);
+    Heat = FMath::Clamp(Heat - WholeDecay, 0, 100);
     RecalculateWantedLevel();
 
     if (WantedLevel != PreviousLevel)

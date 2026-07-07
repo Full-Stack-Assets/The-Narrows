@@ -68,8 +68,12 @@ void AMHPlayerCharacter::TickStamina(float DeltaSeconds)
             SetSprinting(false);
         }
     }
-    else if (!bSprintRequested && Stamina < MaxStamina)
+    else if (Stamina < MaxStamina)
     {
+        // Regen whenever not actively draining, not just when the sprint key is released — if
+        // stamina hits 0 while sprint is still held, movement is already forced to walk speed
+        // above, so waiting for bSprintRequested to go false too would strand stamina at 0 until
+        // the player releases and re-presses the key.
         Stamina = FMath::Min(MaxStamina, Stamina + StaminaRegenPerSecond * DeltaSeconds);
     }
 }
@@ -177,6 +181,8 @@ void AMHPlayerCharacter::BindLegacyInput(UInputComponent* PlayerInputComponent)
         this,
         &AMHPlayerCharacter::RequestRadioNextStation);
     PlayerInputComponent->BindAction(TEXT("Fire"), IE_Pressed, this, &AMHPlayerCharacter::FirePistol);
+    PlayerInputComponent->BindAction(TEXT("Sprint"), IE_Pressed, this, &AMHPlayerCharacter::LegacySprintStart);
+    PlayerInputComponent->BindAction(TEXT("Sprint"), IE_Released, this, &AMHPlayerCharacter::LegacySprintStop);
 }
 
 void AMHPlayerCharacter::RequestRadioNextStation()
@@ -380,14 +386,28 @@ void AMHPlayerCharacter::InputLook(const FInputActionValue& Value)
 
 void AMHPlayerCharacter::InputSprintStart(const FInputActionValue& Value)
 {
-    bSprintRequested = true;
-    SetSprinting(Stamina > 0.0f);
+    SetSprintRequested(true);
 }
 
 void AMHPlayerCharacter::InputSprintStop(const FInputActionValue& Value)
 {
-    bSprintRequested = false;
-    SetSprinting(false);
+    SetSprintRequested(false);
+}
+
+void AMHPlayerCharacter::LegacySprintStart()
+{
+    SetSprintRequested(true);
+}
+
+void AMHPlayerCharacter::LegacySprintStop()
+{
+    SetSprintRequested(false);
+}
+
+void AMHPlayerCharacter::SetSprintRequested(bool bRequested)
+{
+    bSprintRequested = bRequested;
+    SetSprinting(bRequested && Stamina > 0.0f);
 }
 
 void AMHPlayerCharacter::InputInteract(const FInputActionValue& Value)

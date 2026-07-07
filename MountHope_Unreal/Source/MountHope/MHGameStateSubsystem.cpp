@@ -4,6 +4,7 @@
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "MHCollectibleSubsystem.h"
+#include "MHReputationSubsystem.h"
 #include "MHSaveGame.h"
 #include "MHWantedSubsystem.h"
 #include "Misc/FileHelper.h"
@@ -248,6 +249,11 @@ bool UMHGameStateSubsystem::SaveToSlot(const FString& SlotName, int32 UserIndex)
         {
             Save->CollectedCollectibleIds = Collectibles->GetCollectedIdsAsStrings();
         }
+
+        if (const UMHReputationSubsystem* Reputation = GameInstance->GetSubsystem<UMHReputationSubsystem>())
+        {
+            Reputation->GetReputationSnapshot(Save->ReputationByFaction);
+        }
     }
 
     return UGameplayStatics::SaveGameToSlot(Save, SlotName, UserIndex);
@@ -290,6 +296,11 @@ bool UMHGameStateSubsystem::LoadFromSlot(const FString& SlotName, int32 UserInde
         if (UMHCollectibleSubsystem* Collectibles = GameInstance->GetSubsystem<UMHCollectibleSubsystem>())
         {
             Collectibles->RestoreCollectedIds(Save->CollectedCollectibleIds);
+        }
+
+        if (UMHReputationSubsystem* Reputation = GameInstance->GetSubsystem<UMHReputationSubsystem>())
+        {
+            Reputation->RestoreReputationSnapshot(Save->ReputationByFaction);
         }
     }
 

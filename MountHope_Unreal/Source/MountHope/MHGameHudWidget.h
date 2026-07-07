@@ -93,6 +93,9 @@ private:
     UFUNCTION()
     void HandleMissionCompleted(FString Title, FString CompletionMessage);
 
+    UFUNCTION()
+    void HandleCollectibleFound(FName ItemId, int32 CollectedCount, int32 TotalCount);
+
     void SetTextBlockContent(UTextBlock* TextBlock, const FText& Content, bool bCollapseWhenEmpty);
     void ClearToast();
 

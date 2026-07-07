@@ -37,10 +37,14 @@ void AMHPoliceUnitPawn::Tick(float DeltaSeconds)
         return;
     }
 
-    const FVector ToPlayer = PlayerPawn->GetActorLocation() - GetActorLocation();
+    // Ground-bound pursuit: chase along XY only (don't fly up to match a player on a rooftop),
+    // and sweep the move so the pawn stops at solid geometry instead of tunneling through walls.
+    FVector ToPlayer = PlayerPawn->GetActorLocation() - GetActorLocation();
+    ToPlayer.Z = 0.0f;
     const FVector Direction = ToPlayer.GetSafeNormal();
 
-    SetActorLocation(GetActorLocation() + Direction * ChaseSpeed * DeltaSeconds);
+    FHitResult MoveHit;
+    SetActorLocation(GetActorLocation() + Direction * ChaseSpeed * DeltaSeconds, /*bSweep=*/true, &MoveHit);
     if (!Direction.IsNearlyZero())
     {
         SetActorRotation(Direction.Rotation());

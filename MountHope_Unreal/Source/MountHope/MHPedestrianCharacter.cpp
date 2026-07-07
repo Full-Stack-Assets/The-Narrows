@@ -82,27 +82,26 @@ AActor* AMHPedestrianCharacter::FindNearestThreat() const
     TArray<AActor*> Vehicles;
     UGameplayStatics::GetAllActorsOfClass(GetWorld(), AMHVehiclePawn::StaticClass(), Vehicles);
 
+    AMHVehiclePawn* NearestThreat = nullptr;
+    float NearestDistSq = FMath::Square(RadiusUnrealUnits);
+
     for (AActor* VehicleActor : Vehicles)
     {
         AMHVehiclePawn* Vehicle = Cast<AMHVehiclePawn>(VehicleActor);
-        if (!Vehicle)
+        if (!Vehicle || Vehicle->GetVelocity().Size() < ThreatSpeedThreshold)
         {
             continue;
         }
 
         const float DistSq = FVector::DistSquared(GetActorLocation(), Vehicle->GetActorLocation());
-        if (DistSq > FMath::Square(RadiusUnrealUnits))
+        if (DistSq <= NearestDistSq)
         {
-            continue;
-        }
-
-        if (Vehicle->GetVelocity().Size() >= ThreatSpeedThreshold)
-        {
-            return Vehicle;
+            NearestDistSq = DistSq;
+            NearestThreat = Vehicle;
         }
     }
 
-    return nullptr;
+    return NearestThreat;
 }
 
 void AMHPedestrianCharacter::FleeFromThreat(const AActor* Threat)
