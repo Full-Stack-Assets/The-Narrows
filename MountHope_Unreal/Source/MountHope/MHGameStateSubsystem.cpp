@@ -68,12 +68,23 @@ void UMHGameStateSubsystem::AddCash(int32 Delta)
 void UMHGameStateSubsystem::ApplyDamage(float Damage)
 {
     const bool bWasAlive = Health > 0.0f;
-    Health = FMath::Clamp(Health - FMath::Max(0.0f, Damage), 0.0f, 100.0f);
+
+    // Armor soaks damage first (classic GTA), health takes only the overflow.
+    float Remaining = FMath::Max(0.0f, Damage);
+    if (Armor > 0.0f)
+    {
+        const float Absorbed = FMath::Min(Armor, Remaining);
+        Armor -= Absorbed;
+        Remaining -= Absorbed;
+    }
+
+    Health = FMath::Clamp(Health - Remaining, 0.0f, 100.0f);
 
     if (bWasAlive && Health <= 0.0f)
     {
         AddCash(-WastedCashPenalty);
         Health = 100.0f;
+        Armor = 0.0f;
         ClearWantedStateForGameInstance(GetGameInstance());
         OnPlayerWasted.Broadcast();
     }
@@ -84,10 +95,16 @@ void UMHGameStateSubsystem::Heal(float Amount)
     Health = FMath::Clamp(Health + FMath::Max(0.0f, Amount), 0.0f, 100.0f);
 }
 
+void UMHGameStateSubsystem::AddArmor(float Amount)
+{
+    Armor = FMath::Clamp(Armor + Amount, 0.0f, MaxArmor);
+}
+
 void UMHGameStateSubsystem::TriggerBusted()
 {
     AddCash(-BustedCashPenalty);
     Health = 100.0f;
+    Armor = 0.0f;
     ClearWantedStateForGameInstance(GetGameInstance());
     OnPlayerBusted.Broadcast();
 }
@@ -229,6 +246,7 @@ bool UMHGameStateSubsystem::SaveToSlot(const FString& SlotName, int32 UserIndex)
 
     Save->Cash = Cash;
     Save->Health = Health;
+    Save->Armor = Armor;
     Save->PoliceHeat = PoliceHeat;
     Save->FactionHeat = FactionHeat;
     Save->Weather = static_cast<uint8>(Weather);
@@ -274,6 +292,7 @@ bool UMHGameStateSubsystem::LoadFromSlot(const FString& SlotName, int32 UserInde
 
     Cash = FMath::Max(0, Save->Cash);
     Health = FMath::Clamp(Save->Health, 0.0f, 100.0f);
+    Armor = FMath::Clamp(Save->Armor, 0.0f, MaxArmor);
     PoliceHeat = ClampHeat(Save->PoliceHeat);
     FactionHeat = ClampHeat(Save->FactionHeat);
     Weather = static_cast<EMHWeatherState>(FMath::Clamp<int32>(Save->Weather, 0, 3));

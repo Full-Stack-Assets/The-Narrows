@@ -17,6 +17,7 @@
 #include "MHDialogueSubsystem.h"
 #include "MHInteractable.h"
 #include "MHPedestrianCharacter.h"
+#include "MHPoliceUnitPawn.h"
 #include "MHRadioSubsystem.h"
 #include "MHVehiclePawn.h"
 #include "MHWantedSubsystem.h"
@@ -243,6 +244,18 @@ void AMHPlayerCharacter::FirePistol()
         if (WantedSubsystem)
         {
             WantedSubsystem->ReportCrime(EMHCrimeType::PropertyDamage, PistolCrimeSeverity / 2);
+        }
+    }
+    else if (AMHPoliceUnitPawn* HitCop = Cast<AMHPoliceUnitPawn>(HitActor))
+    {
+        HitCop->ApplyDamage(PistolCopDamage);
+        if (HitCop->IsDead())
+        {
+            HitCop->Destroy();
+        }
+        if (WantedSubsystem)
+        {
+            WantedSubsystem->ReportCrime(EMHCrimeType::Assault, PistolCrimeSeverity);
         }
     }
     else if (AMHPedestrianCharacter* HitPedestrian = Cast<AMHPedestrianCharacter>(HitActor))

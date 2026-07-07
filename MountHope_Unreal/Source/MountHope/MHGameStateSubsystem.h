@@ -65,6 +65,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mount Hope|Player")
     float Health = 100.0f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mount Hope|Player")
+    float Armor = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mount Hope|Player")
+    float MaxArmor = 100.0f;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mount Hope|Hostility")
     float PoliceHeat = 0.0f;
 
@@ -103,6 +109,9 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Mount Hope|Player")
     void Heal(float Amount);
+
+    UFUNCTION(BlueprintCallable, Category = "Mount Hope|Player")
+    void AddArmor(float Amount);
 
     UFUNCTION(BlueprintCallable, Category = "Mount Hope|Consequence")
     void TriggerBusted();

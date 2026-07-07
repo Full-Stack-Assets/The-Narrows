@@ -394,6 +394,38 @@ exponential-growth" scaffolding (doesn't map to a single-player game) or large
 new gameplay modules written blind (too risky without a compiler). Those wait
 for the editor loop.
 
+### Eighth pass — combat & police-AI depth
+
+Pushed on the combat/police track (chosen over vehicle/traffic because its logic
+is deterministic and unit-testable without an engine; ambient-traffic pathing is
+mostly physics/feel that needs the editor). The risky "feel" bits (movement,
+line-of-sight timing) are kept simple and flagged for PIE tuning.
+
+- **Player armor** — `UMHGameStateSubsystem` gains `Armor`/`MaxArmor`,
+  `AddArmor()`, and `ApplyDamage` now soaks damage through armor before health
+  (classic GTA). Armor is saved/loaded and cleared on wasted/busted. The HUD
+  status line shows HP and (when non-zero) Armor.
+- **Police pursuit state machine** — `AMHPoliceUnitPawn` now has an
+  `EMHPoliceState` (`Pursue` / `Attack`): unarmed units close in and apply
+  contact "catch" pressure (as before); armed units hold at `AttackRange` and
+  fire on a cadence, gated by a `HasLineOfSightTo` trace, dealing `ShotDamage`
+  through the armor-aware `ApplyDamage`.
+- **Cop health + neutralization** — units have `Health`/`MaxHealth`,
+  `ApplyDamage`, and `IsDead`; the player's pistol now damages cops
+  (`PistolCopDamage`) and a killed pursuer is destroyed (still a crime — reports
+  `Assault`). This ties the combat loop back into the wanted loop.
+- **Wanted-tier escalation** — `AMHPoliceSpawnerActor::GetTierForWantedLevel`
+  (a pure, testable map) scales unit **count**, **health**, and **whether they
+  are armed** with the star level (firearms appear at 3★); spawned units are
+  configured via `ConfigureForTier`.
+- **Tests** — `MHPoliceTest` (unit death + tier escalation) and an armor-soak
+  test added to `MHGameStateSubsystemTest`. Gates: `validate_scaffold.py` checks
+  the new symbols + test file; `check_cpp.py` covers it (74 files, green).
+
+Known editor-only follow-ups: the `ECC_Visibility` LOS/pistol trace channel
+against the project's collision presets; a Search/give-up state and cop
+ragdoll/animation; and tuning ranges/damage/fire-rate in PIE.
+
 ### Audio cue hook points
 
 Mirroring the radio subsystem's "data ready, asset bound in editor" pattern:
