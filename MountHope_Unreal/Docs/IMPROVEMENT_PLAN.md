@@ -399,7 +399,34 @@ See `Docs/EDITOR_SETUP.md` for the Phase 1 editor checklist and
 ## CI (cloud sandbox)
 
 ```bash
-python3 MountHope_Unreal/Scripts/validate_scaffold.py
+python3 MountHope_Unreal/Scripts/validate_scaffold.py   # structure / wiring / JSON
+python3 MountHope_Unreal/Scripts/check_cpp.py           # C++ structural static checks
 ```
 
-Full C++ compile cannot run in Cursor Cloud without a local Unreal install.
+Full C++ compile cannot run in the cloud sandbox without a local Unreal install.
+
+### C++ static gate (`Scripts/check_cpp.py`)
+
+The fifth-pass audit surfaced ~14 bugs in C++ that had never seen a compiler,
+so this pass added a headless static gate to catch the *structural* subset of
+build-breakers before the editor ever opens. It deliberately is **not** a
+`UnrealEngine` shim / fake compiler: UnrealHeaderTool code-gen (`UCLASS`/
+`GENERATED_BODY`/`UPROPERTY` -> `*.generated.h`) means a shim would have to
+`#define` UHT away and would then pass code UBT rejects — false confidence,
+worse than no gate. Instead it checks, per file, without an engine:
+
+1. `{}` / `()` / `[]` balance (after stripping comments and string/char
+   literals), catching truncation/copy-paste breaks.
+2. `.generated.h` include present, **last**, and matching the file's basename.
+3. `GENERATED_BODY()` present for every `UCLASS`/`USTRUCT`/`UINTERFACE`.
+4. Every `X.cpp` includes its own `X.h`.
+5. Every non-transitive module a source file uses (`EnhancedInput`,
+   `GameplayTags`, `AIModule`, `NavigationSystem`, `UMG`, `Json`,
+   `ChaosVehicles`) is declared in `MountHope.Build.cs`.
+6. Every `AddDynamic`/`RemoveDynamic` target method is declared `UFUNCTION()`
+   (binding a non-`UFUNCTION` to a dynamic multicast delegate is a hard error).
+
+Each check is conservative (skips rather than guesses when unsure), so a green
+result carries no false positives and a red result is a genuine problem. It is
+verified against injected breakages for all six classes. It still does not
+prove type/semantic correctness — a real UE 5.8 compile remains required.

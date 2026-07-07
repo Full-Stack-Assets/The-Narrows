@@ -43,12 +43,20 @@ the Unreal project is the premium PC/console path.
 
 ### CI (no Unreal install required)
 
-GitHub Actions runs `Scripts/validate_scaffold.py` on changes under
-`MountHope_Unreal/` (see `.github/workflows/unreal-ci.yml`).
+GitHub Actions runs two sandbox-safe gates on changes under `MountHope_Unreal/`
+(see `.github/workflows/unreal-ci.yml`):
 
 ```bash
-python3 MountHope_Unreal/Scripts/validate_scaffold.py
+python3 MountHope_Unreal/Scripts/validate_scaffold.py   # project structure / wiring / JSON schemas
+python3 MountHope_Unreal/Scripts/check_cpp.py           # C++ structural / hygiene static checks
 ```
+
+`check_cpp.py` catches a high-value subset of build-breaking mistakes without an
+engine — delimiter balance, `.generated.h` include ordering, `GENERATED_BODY()`
+presence, `Build.cs` module dependencies, and dynamic-delegate `UFUNCTION`s.
+Neither script is a compiler: they do **not** replace a real UE 5.8 build (UHT
+code-gen and full type checking only happen in the editor). Always compile
+locally before shipping.
 
 ### Local compile (requires Unreal Engine 5.8)
 

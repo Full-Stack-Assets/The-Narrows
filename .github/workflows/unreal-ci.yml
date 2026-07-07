@@ -19,3 +19,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate Unreal scaffold
         run: python3 MountHope_Unreal/Scripts/validate_scaffold.py
+      - name: Static-check Unreal C++
+        # Structural/hygiene gate for the C++ module (delimiter balance, generated.h
+        # ordering, GENERATED_BODY presence, Build.cs module deps, dynamic-delegate
+        # UFUNCTIONs). NOT a compiler — a real UE 5.8 build is still required.
+        run: python3 MountHope_Unreal/Scripts/check_cpp.py
