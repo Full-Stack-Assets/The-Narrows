@@ -6,6 +6,21 @@
 #include "MHMissionSubsystem.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMHOnMissionCompleted, FString, Title, FString, CompletionMessage);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMHOnMissionFailed, FString, Reason);
+
+UENUM(BlueprintType)
+enum class EMHObjectiveType : uint8
+{
+    // Complete by satisfying the objective (reach the target / enter a vehicle /
+    // finish the dialogue). Default; unchanged legacy behavior.
+    Reach UMETA(DisplayName = "Reach"),
+    // Same as Reach, but the step must be completed before TimeLimitSeconds
+    // elapses or the mission fails and restarts from its first step.
+    Timed UMETA(DisplayName = "Timed"),
+    // Stay alive for TimeLimitSeconds; the step auto-completes when the timer
+    // runs out (a "hold out" beat). No world target needed.
+    Survive UMETA(DisplayName = "Survive")
+};
 
 USTRUCT(BlueprintType)
 struct FMHMissionStep
@@ -14,6 +29,12 @@ struct FMHMissionStep
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mount Hope|Mission")
     FString Text;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mount Hope|Mission")
+    EMHObjectiveType ObjectiveType = EMHObjectiveType::Reach;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mount Hope|Mission")
+    float TimeLimitSeconds = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mount Hope|Mission")
     FVector Target = FVector::ZeroVector;
@@ -76,6 +97,9 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Mount Hope|Mission")
     FMHOnMissionCompleted OnMissionCompleted;
 
+    UPROPERTY(BlueprintAssignable, Category = "Mount Hope|Mission")
+    FMHOnMissionFailed OnMissionFailed;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mount Hope|Mission")
     TArray<FMHMission> Missions;
 
@@ -96,6 +120,14 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Mount Hope|Mission")
     bool AdvanceStep();
+
+    // Reset progress to the first step of the current mission (a checkpoint at
+    // mission start), used when a mission is failed.
+    UFUNCTION(BlueprintCallable, Category = "Mount Hope|Mission")
+    void RestartCurrentMission();
+
+    UFUNCTION(BlueprintPure, Category = "Mount Hope|Mission")
+    bool IsMissionInProgress() const;
 
     UFUNCTION(BlueprintPure, Category = "Mount Hope|Mission")
     bool GetCurrentMission(FMHMission& OutMission) const;

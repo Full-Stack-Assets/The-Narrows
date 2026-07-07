@@ -125,6 +125,52 @@ void AMHGameModeBase::Tick(float DeltaSeconds)
     }
 
     TickBustedTimer(DeltaSeconds);
+    TickStepTimer(DeltaSeconds);
+}
+
+void AMHGameModeBase::TickStepTimer(float DeltaSeconds)
+{
+    if (!bStepTimerActive)
+    {
+        return;
+    }
+
+    StepTimeRemaining -= DeltaSeconds;
+    if (StepTimeRemaining > 0.0f)
+    {
+        return;
+    }
+
+    bStepTimerActive = false;
+    StepTimeRemaining = 0.0f;
+
+    if (bStepTimerIsSurvive)
+    {
+        // Survived the countdown: auto-complete the step (bypasses the vehicle/heat
+        // gates, which don't apply to a hold-out objective).
+        ApplyObjectiveCompletion();
+    }
+    else
+    {
+        FailCurrentMission(TEXT("Out of time"));
+    }
+}
+
+void AMHGameModeBase::FailCurrentMission(const FString& Reason)
+{
+    UMHMissionSubsystem* MissionSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMHMissionSubsystem>() : nullptr;
+    if (!MissionSubsystem || !MissionSubsystem->IsMissionInProgress())
+    {
+        return;
+    }
+
+    bStepTimerActive = false;
+    MissionSubsystem->RestartCurrentMission();
+    MissionSubsystem->OnMissionFailed.Broadcast(Reason);
+    UE_LOG(LogTemp, Log, TEXT("MountHope: Mission failed (%s) - restarting from the top."), *Reason);
+    UGameplayStatics::PlaySound2D(this, MissionFailedSound);
+
+    RefreshObjectiveTrigger();
 }
 
 void AMHGameModeBase::TickBustedTimer(float DeltaSeconds)
@@ -160,6 +206,7 @@ void AMHGameModeBase::HandlePlayerWasted()
     UE_LOG(LogTemp, Log, TEXT("MountHope: Player wasted - respawning at safehouse."));
     UGameplayStatics::PlaySound2D(this, BustedOrWastedSound);
     RespawnAtSafehouseIfAvailable();
+    FailCurrentMission(TEXT("You were wasted"));
 }
 
 void AMHGameModeBase::HandlePlayerBusted()
@@ -167,6 +214,7 @@ void AMHGameModeBase::HandlePlayerBusted()
     UE_LOG(LogTemp, Log, TEXT("MountHope: Player busted - respawning at safehouse."));
     UGameplayStatics::PlaySound2D(this, BustedOrWastedSound);
     RespawnAtSafehouseIfAvailable();
+    FailCurrentMission(TEXT("You were busted"));
 }
 
 void AMHGameModeBase::HandleHourChanged(int32 Hour)
@@ -224,8 +272,7 @@ bool AMHGameModeBase::CompleteCurrentObjective(bool bPlayerInVehicle)
     }
 
     UMHMissionSubsystem* MissionSubsystem = GetGameInstance()->GetSubsystem<UMHMissionSubsystem>();
-    UMHGameStateSubsystem* GameStateSubsystem = GetGameInstance()->GetSubsystem<UMHGameStateSubsystem>();
-    if (!MissionSubsystem || !GameStateSubsystem)
+    if (!MissionSubsystem)
     {
         return false;
     }
@@ -255,6 +302,24 @@ bool AMHGameModeBase::CompleteCurrentObjective(bool bPlayerInVehicle)
                 }
             }
         }
+    }
+
+    return ApplyObjectiveCompletion();
+}
+
+bool AMHGameModeBase::ApplyObjectiveCompletion()
+{
+    UMHMissionSubsystem* MissionSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMHMissionSubsystem>() : nullptr;
+    UMHGameStateSubsystem* GameStateSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UMHGameStateSubsystem>() : nullptr;
+    if (!MissionSubsystem || !GameStateSubsystem)
+    {
+        return false;
+    }
+
+    FMHMissionStep Step;
+    if (!MissionSubsystem->GetCurrentStep(Step))
+    {
+        return false;
     }
 
     if (Step.Reward > 0)
@@ -388,6 +453,20 @@ void AMHGameModeBase::RefreshObjectiveTrigger()
 
     FMHMissionStep Step;
     const bool bHasStep = MissionSubsystem->GetCurrentStep(Step);
+
+    // (Re)arm the countdown for the current step. Done here — before the trigger
+    // early-returns below — because a Survive step has no world trigger but still
+    // needs its timer, and every step change routes through this function.
+    bStepTimerActive = false;
+    if (bHasStep
+        && Step.TimeLimitSeconds > 0.0f
+        && (Step.ObjectiveType == EMHObjectiveType::Timed || Step.ObjectiveType == EMHObjectiveType::Survive))
+    {
+        bStepTimerActive = true;
+        bStepTimerIsSurvive = (Step.ObjectiveType == EMHObjectiveType::Survive);
+        StepTimeRemaining = Step.TimeLimitSeconds;
+    }
+
     const bool bNeedsTrigger = bHasStep && IsWorldTargetObjective(Step);
 
     if (!bNeedsTrigger)

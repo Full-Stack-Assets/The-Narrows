@@ -91,6 +91,30 @@ bool UMHMissionSubsystem::LoadMissionsFromJson(const FString& RelativeOrAbsolute
                 FMHMissionStep Step;
                 Step.Text = StepText;
                 Step.Radius = static_cast<float>(StepObject->GetNumberField(TEXT("radius")));
+
+                FString ObjectiveTypeString;
+                if (StepObject->TryGetStringField(TEXT("objectiveType"), ObjectiveTypeString))
+                {
+                    if (ObjectiveTypeString.Equals(TEXT("timed"), ESearchCase::IgnoreCase))
+                    {
+                        Step.ObjectiveType = EMHObjectiveType::Timed;
+                    }
+                    else if (ObjectiveTypeString.Equals(TEXT("survive"), ESearchCase::IgnoreCase))
+                    {
+                        Step.ObjectiveType = EMHObjectiveType::Survive;
+                    }
+                    else
+                    {
+                        Step.ObjectiveType = EMHObjectiveType::Reach;
+                    }
+                }
+
+                double TimeLimitValue = Step.TimeLimitSeconds;
+                if (StepObject->TryGetNumberField(TEXT("timeLimitSeconds"), TimeLimitValue))
+                {
+                    Step.TimeLimitSeconds = static_cast<float>(TimeLimitValue);
+                }
+
                 Step.bNeedVehicle = StepObject->GetBoolField(TEXT("needVehicle"));
                 Step.Reward = StepObject->GetIntegerField(TEXT("reward"));
 
@@ -178,6 +202,23 @@ bool UMHMissionSubsystem::AdvanceStep()
     StepIndex = 0;
     bCampaignComplete = !Missions.IsValidIndex(MissionIndex);
     return true;
+}
+
+void UMHMissionSubsystem::RestartCurrentMission()
+{
+    if (Missions.IsValidIndex(MissionIndex))
+    {
+        StepIndex = 0;
+    }
+}
+
+bool UMHMissionSubsystem::IsMissionInProgress() const
+{
+    if (bCampaignComplete || !Missions.IsValidIndex(MissionIndex))
+    {
+        return false;
+    }
+    return Missions[MissionIndex].Steps.IsValidIndex(StepIndex);
 }
 
 bool UMHMissionSubsystem::GetCurrentMission(FMHMission& OutMission) const

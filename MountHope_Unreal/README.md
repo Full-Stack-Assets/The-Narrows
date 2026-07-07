@@ -58,6 +58,22 @@ Neither script is a compiler: they do **not** replace a real UE 5.8 build (UHT
 code-gen and full type checking only happen in the editor). Always compile
 locally before shipping.
 
+### Unit tests (require Unreal Engine)
+
+Deterministic subsystem logic (wanted decay, mission advance/restart, economy,
+reputation, clock) is covered by UE automation tests in
+`Source/MountHope/Tests/`. They need the engine, so they run locally / on a
+self-hosted UE runner rather than in the Python CI — from the editor's **Session
+Frontend → Automation** (filter `MountHope`) or headlessly:
+
+```bash
+"$UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" "$PWD/MountHope.uproject" \
+  -ExecCmds="Automation RunTests MountHope; Quit" -unattended -nop4 -nosplash
+```
+
+See [`Docs/ARCHITECTURE.md`](Docs/ARCHITECTURE.md) for the module map and the
+full testing/validation model.
+
 ### Local compile (requires Unreal Engine 5.8)
 
 **Windows (PowerShell):**

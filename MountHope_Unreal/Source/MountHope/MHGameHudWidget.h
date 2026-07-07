@@ -94,6 +94,9 @@ private:
     void HandleMissionCompleted(FString Title, FString CompletionMessage);
 
     UFUNCTION()
+    void HandleMissionFailed(FString Reason);
+
+    UFUNCTION()
     void HandleCollectibleFound(FName ItemId, int32 CollectedCount, int32 TotalCount);
 
     void SetTextBlockContent(UTextBlock* TextBlock, const FText& Content, bool bCollapseWhenEmpty);

@@ -326,6 +326,74 @@ still cover the wired-up state.
   `-90` pitch every frame; it's set once in the constructor and never
   changes, so the per-tick call was redundant work.
 
+### Sixth pass — mission depth (typed/timed objectives, failure & restart)
+
+The mission layer was a flat "reach the next target" chain with no way to lose.
+This pass adds stakes and objective variety — all deterministic gameplay logic,
+the category most safely written without a live compiler, and covered by the
+`validate_scaffold.py` + `check_cpp.py` gates.
+
+- **Typed objectives** — `FMHMissionStep` gained `EMHObjectiveType`
+  (`Reach` / `Timed` / `Survive`) and `TimeLimitSeconds`. `Reach` is the
+  unchanged legacy behavior. `Timed` must be completed before the countdown
+  expires or the mission fails. `Survive` is a hold-out beat that auto-completes
+  when the countdown ends (no world target needed). All optional/back-compatible
+  in JSON — untyped steps stay `Reach`.
+- **Mission failure + checkpoint restart** — `UMHMissionSubsystem` gained
+  `OnMissionFailed`, `RestartCurrentMission()` (reset to the mission's first
+  step), and `IsMissionInProgress()`. `AMHGameModeBase::FailCurrentMission()`
+  restarts the mission and broadcasts; it fires from a `Timed` timeout and from
+  the wasted/busted consequence handlers (dying mid-mission now fails it,
+  GTA-style). The HUD shows a "Mission failed: <reason>" toast.
+- **Live countdown HUD** — a `Timed`/`Survive` step's remaining seconds render
+  in the objective line (`AMHGameModeBase::IsCurrentStepTimed()` /
+  `GetCurrentStepTimeRemaining()`).
+- **Refactor** — the post-gate completion logic (rewards, crime, reputation,
+  advance, mission-complete, save) was extracted into
+  `AMHGameModeBase::ApplyObjectiveCompletion()`, shared by the normal completion
+  path (after its vehicle/heat gates) and the `Survive` auto-complete.
+- **Data** — `Data/Missions/vertical_slice.json` now exercises both new types:
+  "Off the Boat"'s ambush escape is `Timed` (45s), and "Harbor Heat" gained a
+  `Survive` hold-out beat plus a `Timed` getaway. A new `MissionFailedSound`
+  hook on the game mode follows the existing null-safe audio-cue pattern.
+
+Still not proven by a compile — a real UE 5.8 build is required, and the
+per-type *feel* (timer lengths, what counts as "in combat" for a survive beat)
+needs PIE tuning.
+
+### Seventh pass — automated tests, architecture docs, maintainability
+
+Turned the "expand + harden" directive into the parts that actually apply to a
+single-player UE game (this is not a scaling web backend, and there's still no
+engine in the sandbox to compile against), focusing on the biggest real gap:
+the C++ logic had no automated tests.
+
+- **UE automation test suite** (`Source/MountHope/Tests/*.cpp`, guarded by
+  `WITH_DEV_AUTOMATION_TESTS`) — real unit tests of the deterministic subsystem
+  logic, each driving a `NewObject` subsystem directly (no world needed):
+  - `MHWantedSubsystemTest` — includes a **regression test for the wanted-decay
+    bug** (heat must actually drop at 60 FPS) and the 5-star clamp.
+  - `MHMissionSubsystemTest` — step advance, campaign-complete boundary, and the
+    new restart-to-first-step behavior.
+  - `MHGameStateSubsystemTest` — cash clamp, buy-business + passive income, and
+    the lethal-damage "wasted" consequence.
+  - `MHTimeOfDaySubsystemTest` — midnight rollover and the day/night sun curve.
+  - `MHReputationSubsystemTest` — ±100 clamp and save-snapshot roundtrip.
+  They run in-editor / on a self-hosted UE runner (see `README.md` and
+  `ARCHITECTURE.md`), not in the Python CI, since they need the engine.
+- **`Docs/ARCHITECTURE.md`** — module map, subsystem responsibilities, the
+  delegate/data-driven/one-save-path patterns, the three-tier
+  validation-vs-compile model, and the deployment reality (real packaging needs a
+  self-hosted UE runner).
+- **Gate wiring** — `validate_scaffold.py` now requires the test files and
+  checks each declares an automation test guarded by `WITH_DEV_AUTOMATION_TESTS`;
+  `check_cpp.py` covers the new files structurally (73 files, still green).
+
+Deliberately *not* done: fabricated "microservices / horizontal-scaling /
+exponential-growth" scaffolding (doesn't map to a single-player game) or large
+new gameplay modules written blind (too risky without a compiler). Those wait
+for the editor loop.
+
 ### Audio cue hook points
 
 Mirroring the radio subsystem's "data ready, asset bound in editor" pattern:

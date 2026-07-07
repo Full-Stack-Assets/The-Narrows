@@ -11,6 +11,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "MHCollectibleSubsystem.h"
 #include "MHDialogueSubsystem.h"
+#include "MHGameModeBase.h"
 #include "MHGameStateSubsystem.h"
 #include "MHMinimapCaptureActor.h"
 #include "MHMissionSubsystem.h"
@@ -169,6 +170,7 @@ void UMHGameHudWidget::BindSubsystemDelegates()
     if (UMHMissionSubsystem* MissionSubsystem = GameInstance->GetSubsystem<UMHMissionSubsystem>())
     {
         MissionSubsystem->OnMissionCompleted.AddDynamic(this, &UMHGameHudWidget::HandleMissionCompleted);
+        MissionSubsystem->OnMissionFailed.AddDynamic(this, &UMHGameHudWidget::HandleMissionFailed);
     }
 
     if (UMHCollectibleSubsystem* CollectibleSubsystem = GameInstance->GetSubsystem<UMHCollectibleSubsystem>())
@@ -203,6 +205,7 @@ void UMHGameHudWidget::UnbindSubsystemDelegates()
         if (UMHMissionSubsystem* MissionSubsystem = GameInstance->GetSubsystem<UMHMissionSubsystem>())
         {
             MissionSubsystem->OnMissionCompleted.RemoveDynamic(this, &UMHGameHudWidget::HandleMissionCompleted);
+            MissionSubsystem->OnMissionFailed.RemoveDynamic(this, &UMHGameHudWidget::HandleMissionFailed);
         }
 
         if (UMHCollectibleSubsystem* CollectibleSubsystem = GameInstance->GetSubsystem<UMHCollectibleSubsystem>())
@@ -238,6 +241,18 @@ void UMHGameHudWidget::RefreshObjectiveAndStatus()
         else if (MissionSubsystem->bCampaignComplete)
         {
             Objective = FText::FromString(TEXT("Campaign complete."));
+        }
+    }
+
+    // Append the live countdown for a Timed / Survive objective.
+    if (const AMHGameModeBase* GameMode = GetWorld() ? Cast<AMHGameModeBase>(GetWorld()->GetAuthGameMode()) : nullptr)
+    {
+        if (GameMode->IsCurrentStepTimed())
+        {
+            Objective = FText::FromString(FString::Printf(
+                TEXT("%s  [%ds]"),
+                *Objective.ToString(),
+                FMath::CeilToInt(GameMode->GetCurrentStepTimeRemaining())));
         }
     }
 
@@ -421,6 +436,20 @@ void UMHGameHudWidget::HandleMissionCompleted(FString Title, FString CompletionM
     const FString ToastLine = CompletionMessage.IsEmpty()
         ? FString::Printf(TEXT("%s complete."), *Title)
         : CompletionMessage;
+
+    SetTextBlockContent(ToastTextBlock, FText::FromString(ToastLine), true);
+
+    if (UWorld* World = GetWorld())
+    {
+        World->GetTimerManager().SetTimer(ToastTimerHandle, this, &UMHGameHudWidget::ClearToast, 5.0f, false);
+    }
+}
+
+void UMHGameHudWidget::HandleMissionFailed(FString Reason)
+{
+    const FString ToastLine = Reason.IsEmpty()
+        ? FString(TEXT("Mission failed."))
+        : FString::Printf(TEXT("Mission failed: %s"), *Reason);
 
     SetTextBlockContent(ToastTextBlock, FText::FromString(ToastLine), true);
 
