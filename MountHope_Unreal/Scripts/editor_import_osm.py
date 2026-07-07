@@ -150,19 +150,32 @@ def spawn_road_spline(road: dict, index: int) -> None:
         location,
         unreal.Rotator(0.0, 0.0, 0.0),
     )
+    if not actor:
+        return
     actor.set_actor_label(f"MH_RoadSpline_{index:03d}_{road.get('name', 'road')[:24]}")
 
-    spline = actor.add_component_by_class(
-        unreal.SplineComponent,
-        manual_attachment=False,
-        relative_transform=unreal.Transform(),
-    )
+    # These debug road splines are optional visualization; the OBJ blockout import is
+    # the primary geometry. Instance-component creation via Python varies across engine
+    # builds, so degrade gracefully rather than aborting the whole import.
+    add_component = getattr(actor, "add_component_by_class", None)
+    if add_component is None:
+        warn("Actor.add_component_by_class unavailable in this build; skipping debug "
+             "road spline (OBJ blockout import is unaffected).")
+        return
+    try:
+        spline = add_component(unreal.SplineComponent, False, unreal.Transform(), False)
+    except Exception as exc:  # pragma: no cover - editor-only
+        warn(f"Could not add spline component ({exc}); skipping debug road spline.")
+        return
+    if not spline:
+        return
 
+    actor_transform = actor.get_actor_transform()
     for i, point in enumerate(points):
         if len(point) < 2:
             continue
         world_point = slice_point_to_unreal(point[0], point[1])
-        local_point = actor.get_transform().inverse_transform_position(world_point)
+        local_point = actor_transform.inverse_transform_position(world_point)
         spline.add_spline_point(local_point, unreal.SplineCoordinateSpace.LOCAL, False)
 
     spline.set_closed_loop(False, False)
