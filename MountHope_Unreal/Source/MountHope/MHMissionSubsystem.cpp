@@ -52,8 +52,15 @@ bool UMHMissionSubsystem::LoadMissionsFromJson(const FString& RelativeOrAbsolute
             continue;
         }
 
+        FString Title;
+        if (!MissionObject->TryGetStringField(TEXT("title"), Title) || Title.IsEmpty())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("MountHope: Skipping mission entry with missing/empty title"));
+            continue;
+        }
+
         FMHMission Mission;
-        Mission.Title = MissionObject->GetStringField(TEXT("title"));
+        Mission.Title = Title;
         MissionObject->TryGetStringField(TEXT("act"), Mission.Act);
         MissionObject->TryGetStringField(TEXT("completionMessage"), Mission.CompletionMessage);
 
@@ -74,8 +81,15 @@ bool UMHMissionSubsystem::LoadMissionsFromJson(const FString& RelativeOrAbsolute
                     continue;
                 }
 
+                FString StepText;
+                if (!StepObject->TryGetStringField(TEXT("text"), StepText) || StepText.IsEmpty())
+                {
+                    UE_LOG(LogTemp, Warning, TEXT("MountHope: Skipping mission step with missing/empty text"));
+                    continue;
+                }
+
                 FMHMissionStep Step;
-                Step.Text = StepObject->GetStringField(TEXT("text"));
+                Step.Text = StepText;
                 Step.Radius = static_cast<float>(StepObject->GetNumberField(TEXT("radius")));
                 Step.bNeedVehicle = StepObject->GetBoolField(TEXT("needVehicle"));
                 Step.Reward = StepObject->GetIntegerField(TEXT("reward"));

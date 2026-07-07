@@ -36,4 +36,7 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mount Hope|Save")
     TArray<FString> CollectedCollectibleIds;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mount Hope|Save")
+    TMap<FString, int32> ReputationByFaction;
 };

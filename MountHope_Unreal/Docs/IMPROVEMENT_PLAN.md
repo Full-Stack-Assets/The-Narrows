@@ -243,6 +243,89 @@ cop-car pursuit AI/spawning.
   actually drive cars along roads is the natural next step once this is
   running in the real editor and the OSM road network is imported.
 
+### Fifth pass — code audit and bug fixes
+
+A systematic read-only audit of every `Source/MountHope/` class (split by
+subsystem, cross-checked against `VERTICAL_SLICE.md`/this document's stated
+behavior) turned up several real bugs that had been sitting unnoticed because
+this codebase has never had a compiler run against it. All were fixed in this
+pass; no new features, so `Scripts/validate_scaffold.py`'s existing checks
+still cover the wired-up state.
+
+**High severity (broke a core loop entirely):**
+- `UMHWantedSubsystem::TickWantedDecay` rounded `DecayPerSecond * DeltaSeconds`
+  to the nearest int *every frame*, which truncates to 0 at any framerate
+  above ~6 FPS — wanted heat never actually decayed in normal play. Fixed by
+  accumulating the fractional remainder across ticks (`PendingDecay`) instead
+  of discarding it each frame.
+- Sprint was unreachable through the legacy input fallback: `DefaultInput.ini`
+  had no `Sprint` action mapping and `AMHPlayerCharacter::BindLegacyInput`
+  never bound one, so without a Blueprint-authored Enhanced Input mapping
+  context, stamina/sprint never triggered. Added the mapping (`LeftShift`)
+  and `LegacySprintStart`/`LegacySprintStop` bindings that route through the
+  same `SetSprintRequested` helper Enhanced Input uses.
+
+**Medium severity:**
+- `TickStamina` could strand stamina at 0 while sprint was still held (regen
+  only ran when `!bSprintRequested`, but the stuck state is
+  `bSprintRequested && Stamina == 0`, which matched neither branch). Regen now
+  runs whenever not actively draining.
+- `AMHPoliceSpawnerActor` placed pursuers via a flat XY ring offset with no
+  ground/navmesh check, risking spawns underground/in buildings/floating on
+  uneven terrain. Now projects onto the navmesh via `ProjectPointToNavigation`
+  (falls back to the flat offset if none is found).
+- `AMHPoliceUnitPawn::Tick` moved with `SetActorLocation(..., bSweep=false)`
+  in full 3D, so pursuers tunneled through walls and flew vertically to match
+  a player's height. Now sweeps the move and chases along XY only.
+- `AMHGameModeBase::RespawnAtSafehouseIfAvailable` silently no-op'd for a
+  player who hadn't claimed a safehouse yet, so an early death/bust had no
+  positional consequence. Now falls back to the level's `APlayerStart`.
+- Reputation (`UMHReputationSubsystem`) was read/written by missions and
+  shops but never persisted — `SaveToSlot`/`LoadFromSlot` didn't touch it.
+  Added a string-keyed snapshot (`GetReputationSnapshot`/
+  `RestoreReputationSnapshot`) and a `ReputationByFaction` field on
+  `UMHSaveGame`.
+- `UMHGameStateSubsystem::GetPassiveDailyIncome()` was computed but never
+  called anywhere, so owning a business had no ongoing return. Now applied
+  once per in-game day via `UMHTimeOfDaySubsystem::OnHourChanged`
+  (`AMHGameModeBase::HandleHourChanged`, gated on the midnight rollover).
+- `AMHPedestrianCharacter::FindNearestThreat` returned the *first* qualifying
+  vehicle found, not the nearest — a pedestrian could flee a far vehicle while
+  ignoring a closer, faster one. Now tracks the closest match.
+
+**Low severity / cleanup:**
+- `UMHOpenWorldSubsystem::GetDefaultMapSource()` was unwired and pointed at a
+  stale path (`quahog-project-files/mapdata/southcoast-roads.json`) that
+  isn't the JSON actually loaded at runtime. Path corrected to match
+  `UMHGameInstance::SlicePath`, and `AMHGameModeBase::BeginPlay` now logs the
+  active profile so the function isn't dead code.
+- `UMHSaveSubsystem` is a second, entirely unwired save system with a
+  different default slot name (`MountHope_Autosave` vs. the real
+  `MountHopeSlot`) — a footgun if anything is ever pointed at it by mistake.
+  Left in place (not referenced by `validate_scaffold.py` or anything else,
+  so removing it is safe whenever someone wants to; not done here since
+  deleting pre-existing files without being asked is out of scope for an
+  audit pass) but documented as unwired and its slot name aligned to the real
+  one so it can't silently diverge if it is ever wired up.
+- `UMHCollectibleSubsystem::OnCollectibleFound` broadcast on every pickup but
+  had no HUD listener — cash was still awarded, but the player got zero
+  on-screen feedback. `UMHGameHudWidget` now shows a "found (N/Total)" toast,
+  mirroring the existing mission-completion toast.
+- Mission/dialogue/collectible JSON loaders used `GetStringField` (silently
+  substitutes an empty string and logs a warning on a missing/malformed
+  required field) for `title`/`text`/`id`/`name` instead of
+  `TryGetStringField` + skip. A future content edit that drops one of these
+  fields would previously load a blank-prompt entry instead of failing
+  loudly; now the entry is skipped with a warning, matching the pattern
+  already used for `id`/`text` elsewhere in the same files.
+- `UMHGameHudWidget::SetDialogueLine` ran the speaker name through
+  `FText::Format(FText::FromString("{0}"), Speaker)` instead of using it
+  directly — wasteful, and a latent risk if a speaker name ever contained
+  literal `{}`.
+- `AMHMinimapCaptureActor::Tick` re-applied the capture component's constant
+  `-90` pitch every frame; it's set once in the constructor and never
+  changes, so the per-tick call was redundant work.
+
 ### Audio cue hook points
 
 Mirroring the radio subsystem's "data ready, asset bound in editor" pattern:
@@ -316,7 +399,34 @@ See `Docs/EDITOR_SETUP.md` for the Phase 1 editor checklist and
 ## CI (cloud sandbox)
 
 ```bash
-python3 MountHope_Unreal/Scripts/validate_scaffold.py
+python3 MountHope_Unreal/Scripts/validate_scaffold.py   # structure / wiring / JSON
+python3 MountHope_Unreal/Scripts/check_cpp.py           # C++ structural static checks
 ```
 
-Full C++ compile cannot run in Cursor Cloud without a local Unreal install.
+Full C++ compile cannot run in the cloud sandbox without a local Unreal install.
+
+### C++ static gate (`Scripts/check_cpp.py`)
+
+The fifth-pass audit surfaced ~14 bugs in C++ that had never seen a compiler,
+so this pass added a headless static gate to catch the *structural* subset of
+build-breakers before the editor ever opens. It deliberately is **not** a
+`UnrealEngine` shim / fake compiler: UnrealHeaderTool code-gen (`UCLASS`/
+`GENERATED_BODY`/`UPROPERTY` -> `*.generated.h`) means a shim would have to
+`#define` UHT away and would then pass code UBT rejects — false confidence,
+worse than no gate. Instead it checks, per file, without an engine:
+
+1. `{}` / `()` / `[]` balance (after stripping comments and string/char
+   literals), catching truncation/copy-paste breaks.
+2. `.generated.h` include present, **last**, and matching the file's basename.
+3. `GENERATED_BODY()` present for every `UCLASS`/`USTRUCT`/`UINTERFACE`.
+4. Every `X.cpp` includes its own `X.h`.
+5. Every non-transitive module a source file uses (`EnhancedInput`,
+   `GameplayTags`, `AIModule`, `NavigationSystem`, `UMG`, `Json`,
+   `ChaosVehicles`) is declared in `MountHope.Build.cs`.
+6. Every `AddDynamic`/`RemoveDynamic` target method is declared `UFUNCTION()`
+   (binding a non-`UFUNCTION` to a dynamic multicast delegate is a hard error).
+
+Each check is conservative (skips rather than guesses when unsure), so a green
+result carries no false positives and a red result is a genuine problem. It is
+verified against injected breakages for all six classes. It still does not
+prove type/semantic correctness — a real UE 5.8 compile remains required.

@@ -54,5 +54,8 @@ private:
     UFUNCTION()
     void HandlePlayerBusted();
 
+    UFUNCTION()
+    void HandleHourChanged(int32 Hour);
+
     float TimeAtMaxWanted = 0.0f;
 };

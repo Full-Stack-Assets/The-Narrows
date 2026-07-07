@@ -50,11 +50,8 @@ void AMHMinimapCaptureActor::Tick(float DeltaSeconds)
     const FVector PlayerLocation = PlayerPawn->GetActorLocation();
     SetActorLocation(FVector(PlayerLocation.X, PlayerLocation.Y, PlayerLocation.Z + CaptureHeightAboveGround));
 
+    // CaptureComponent's -90 pitch is set once in the constructor and never changes; only the
+    // actor's yaw needs to update per tick to follow the player.
     const float Yaw = bFollowPlayerYaw ? PlayerPawn->GetActorRotation().Yaw : 0.0f;
     SetActorRotation(FRotator(0.0f, Yaw, 0.0f));
-
-    if (CaptureComponent)
-    {
-        CaptureComponent->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
-    }
 }

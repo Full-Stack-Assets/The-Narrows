@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "MHPoliceUnitPawn.h"
 #include "MHWantedSubsystem.h"
+#include "NavigationSystem.h"
 #include "TimerManager.h"
 
 AMHPoliceSpawnerActor::AMHPoliceSpawnerActor()
@@ -69,11 +70,24 @@ void AMHPoliceSpawnerActor::ManagePoliceUnits()
     }
 
     const float SpawnDistanceUnrealUnits = SpawnDistanceMeters * 100.0f;
+    const UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
     while (ActiveUnits.Num() < DesiredCount)
     {
         const float Angle = FMath::FRandRange(0.0f, 2.0f * PI);
         const FVector Offset = FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0.0f) * SpawnDistanceUnrealUnits;
-        const FVector SpawnLocation = PlayerLocation + Offset;
+        FVector SpawnLocation = PlayerLocation + Offset;
+
+        // Snap the ring point onto the navmesh so units don't spawn underground, inside
+        // buildings, or floating over uneven waterfront terrain; falls back to the flat-Z ring
+        // point if no navmesh is present nearby (e.g. before it's baked in the editor).
+        if (NavSystem)
+        {
+            FNavLocation ProjectedLocation;
+            if (NavSystem->ProjectPointToNavigation(SpawnLocation, ProjectedLocation, FVector(500.0f, 500.0f, 1000.0f)))
+            {
+                SpawnLocation = ProjectedLocation.Location;
+            }
+        }
 
         AMHPoliceUnitPawn* NewUnit = GetWorld()->SpawnActor<AMHPoliceUnitPawn>(
             PoliceUnitClass,

@@ -54,9 +54,23 @@ bool UMHCollectibleSubsystem::LoadCollectiblesFromJson(const FString& RelativeOr
             continue;
         }
 
+        FString IdString;
+        if (!Object->TryGetStringField(TEXT("id"), IdString) || IdString.IsEmpty())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("MountHope: Skipping collectible entry with missing/empty id"));
+            continue;
+        }
+
+        FString DisplayName;
+        if (!Object->TryGetStringField(TEXT("name"), DisplayName) || DisplayName.IsEmpty())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("MountHope: Skipping collectible '%s' with missing/empty name"), *IdString);
+            continue;
+        }
+
         FMHCollectibleRecord Record;
-        Record.Id = FName(*Object->GetStringField(TEXT("id")));
-        Record.DisplayName = Object->GetStringField(TEXT("name"));
+        Record.Id = FName(*IdString);
+        Record.DisplayName = DisplayName;
         Object->TryGetStringField(TEXT("flavor"), Record.FlavorText);
 
         int32 Reward = Record.CashReward;

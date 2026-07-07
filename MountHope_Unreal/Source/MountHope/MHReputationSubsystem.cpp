@@ -21,3 +21,25 @@ bool UMHReputationSubsystem::MeetsReputation(FGameplayTag FactionTag, int32 Requ
 {
     return GetReputation(FactionTag) >= RequiredValue;
 }
+
+void UMHReputationSubsystem::GetReputationSnapshot(TMap<FString, int32>& OutSnapshot) const
+{
+    OutSnapshot.Reset();
+    for (const TPair<FGameplayTag, int32>& Pair : ReputationByFaction)
+    {
+        OutSnapshot.Add(Pair.Key.ToString(), Pair.Value);
+    }
+}
+
+void UMHReputationSubsystem::RestoreReputationSnapshot(const TMap<FString, int32>& Snapshot)
+{
+    ReputationByFaction.Reset();
+    for (const TPair<FString, int32>& Pair : Snapshot)
+    {
+        const FGameplayTag Tag = FGameplayTag::RequestGameplayTag(FName(*Pair.Key), /*ErrorIfNotFound=*/false);
+        if (Tag.IsValid())
+        {
+            ReputationByFaction.Add(Tag, Pair.Value);
+        }
+    }
+}
