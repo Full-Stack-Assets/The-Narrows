@@ -530,3 +530,29 @@ Each check is conservative (skips rather than guesses when unsure), so a green
 result carries no false positives and a red result is a genuine problem. It is
 verified against injected breakages for all six classes. It still does not
 prove type/semantic correctness — a real UE 5.8 compile remains required.
+
+## Deployment pipeline (Tier 3)
+
+The static gates above are Tiers 1–2 of a three-tier validation model now fully
+documented in `Docs/CI_AND_BUILD.md`. Tier 3 is the real thing — a UBT compile,
+headless automation tests, and an optional cook/package — which the sandbox
+cannot run because Unreal Engine is not installable here. This pass closed the
+gap between "we have build scripts" and "we have a pipeline" by adding:
+
+- `Scripts/run_tests.sh` — a shared headless automation-test runner
+  (`UnrealEditor-Cmd ... -ExecCmds="Automation RunTests MountHope" -nullrhi`)
+  that parses the exported report and exits non-zero on any failure. It is the
+  single entry point used both locally and by CI, mirroring `build.sh`'s
+  `UE_ROOT` interface.
+- `.github/workflows/unreal-build.yml` — a self-hosted (`[self-hosted, unreal]`),
+  `workflow_dispatch`-only job that runs the Tier 1–2 gates, then `build.sh`,
+  `run_tests.sh`, and optionally `package.sh`, uploading the automation report
+  and packaged build as artifacts. It is **dormant** until a runner with a local
+  UE 5.8 install is registered and the `UE_ROOT` repo variable is set — kept
+  manual and separate from `unreal-ci.yml` so the always-on PR gate stays green
+  (GitHub-hosted runners cannot install the engine, so a compile bolted onto the
+  PR workflow would leave every PR with a permanently pending check).
+
+The result: the moment a UE 5.8 runner exists, `compile → test → package` is one
+click, and until then nothing regresses. Local developers get the same three
+commands (`build.sh` / `run_tests.sh` / `package.sh`) documented in one place.

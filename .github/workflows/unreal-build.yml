@@ -1,0 +1,83 @@
+name: unreal-build
+
+# Full UE 5.8 build + automation-test + package pipeline.
+#
+# This job is DORMANT until a self-hosted runner labelled [self-hosted, unreal]
+# with a local Unreal Engine 5.8 install is registered for the repo. GitHub-hosted
+# runners cannot run this — Unreal Engine is not installable in that environment.
+# It is manual-only (workflow_dispatch) so it never blocks PRs on the shared
+# validate gate (see unreal-ci.yml) while no runner exists.
+#
+# To enable:
+#   1. Register a self-hosted runner with labels: self-hosted, unreal
+#   2. Set a repository variable UE_ROOT pointing at the engine install
+#      (Settings → Secrets and variables → Actions → Variables).
+#   3. Trigger from the Actions tab → "unreal-build" → Run workflow.
+# See MountHope_Unreal/Docs/CI_AND_BUILD.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Also cook + package a build (slow)"
+        type: boolean
+        default: false
+      platform:
+        description: "Target platform for build/test"
+        type: choice
+        default: Linux
+        options:
+          - Linux
+          - Win64
+          - Mac
+
+jobs:
+  build-test-package:
+    runs-on: [self-hosted, unreal]
+    env:
+      UE_ROOT: ${{ vars.UE_ROOT }}
+      PLATFORM: ${{ inputs.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sanity — UE_ROOT is configured
+        run: |
+          if [ -z "${UE_ROOT}" ]; then
+            echo "::error::Repository variable UE_ROOT is not set. See Docs/CI_AND_BUILD.md." >&2
+            exit 1
+          fi
+          echo "Using UE_ROOT=${UE_ROOT} on platform ${PLATFORM}"
+
+      - name: Static validation (scaffold + C++ hygiene)
+        run: |
+          python3 MountHope_Unreal/Scripts/validate_scaffold.py
+          python3 MountHope_Unreal/Scripts/check_cpp.py
+
+      - name: Compile editor target
+        working-directory: MountHope_Unreal
+        run: bash Scripts/build.sh
+
+      - name: Run automation tests (headless)
+        working-directory: MountHope_Unreal
+        run: bash Scripts/run_tests.sh
+
+      - name: Package (optional)
+        if: ${{ inputs.package }}
+        working-directory: MountHope_Unreal
+        run: bash Scripts/package.sh
+
+      - name: Upload automation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: automation-report-${{ inputs.platform }}
+          path: MountHope_Unreal/Saved/AutomationReport
+          if-no-files-found: ignore
+
+      - name: Upload packaged build
+        if: ${{ inputs.package }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: mounthope-${{ inputs.platform }}
+          path: MountHope_Unreal/Packaged
+          if-no-files-found: ignore
