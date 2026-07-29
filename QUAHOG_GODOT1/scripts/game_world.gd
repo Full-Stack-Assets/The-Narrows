@@ -167,24 +167,47 @@ func _ready() -> void :
     if GameManager:
         GameManager.graphics_quality_changed.connect(_apply_graphics_quality)
     _build_city()
+    if StartupMetrics:
+        StartupMetrics.mark("core_map_ready")
     _apply_graphics_quality()
+    _spawn_player()
+    if StartupMetrics:
+        StartupMetrics.mark("player_ready")
+    if _player.has_signal("shots_fired"):
+        _player.shots_fired.connect(_on_shots_fired)
+    _build_hud()
+    _build_systems()
+    if StartupMetrics:
+        StartupMetrics.mark("world_interactive")
+    call_deferred("_start_deferred_city")
+
+
+func _start_deferred_city() -> void:
+    await get_tree().process_frame
+    if DeferredContent:
+        await DeferredContent.ensure_loaded()
+    if _city and _city.has_method("stream_buildings"):
+        _city.stream_buildings(_player.global_position)
+    await get_tree().process_frame
     _place_cars()
+    await get_tree().process_frame
     _spawn_traffic()
+    await get_tree().process_frame
     _place_streetlights()
     _place_landmark_beacons()
+    await get_tree().process_frame
     _spawn_contacts()
     _spawn_npcs()
-    _spawn_player()
     for tc in _traffic:
         if is_instance_valid(tc):
             tc.player = _player
     for npc in _npcs:
         if is_instance_valid(npc):
             npc.player = _player
-    if _player.has_signal("shots_fired"):
-        _player.shots_fired.connect(_on_shots_fired)
-    _build_hud()
-    _build_systems()
+    for contact in _contacts:
+        if is_instance_valid(contact):
+            contact.job_manager = _job_manager
+    await get_tree().process_frame
     _spawn_pickups()
     _spawn_scrimshaw()
     _spawn_shops()
@@ -195,6 +218,9 @@ func _ready() -> void :
     _start_audio()
     _setup_weather()
     _setup_gloria_flood()
+    if _city and _city.has_method("build_distant_world"):
+        await get_tree().process_frame
+        _city.build_distant_world(self)
     call_deferred("_apply_tod_life")
 
 

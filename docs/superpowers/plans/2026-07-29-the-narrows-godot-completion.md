@@ -324,7 +324,7 @@
   - `MOUNT HOPE` and `1986` are absent;
   - displayed SHA matches the preview source.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
   ```bash
   git add QUAHOG_GODOT1/project.godot QUAHOG_GODOT1/build_web.sh QUAHOG_GODOT1/scripts/main_menu.gd QUAHOG_GODOT1/scripts/ui/hud.gd QUAHOG_GODOT1/scripts/autoloads/build_info.gd QUAHOG_GODOT1/scripts/generate_build_info.py QUAHOG_GODOT1/assets/ui QUAHOG_GODOT1/vercel.json QUAHOG_GODOT1/tests/test_build_info.gd docs/releases/deployment-record.md
@@ -352,7 +352,7 @@
 
 - Produces: `StartupMetrics.mark(name)`, `StartupMetrics.elapsed_ms(from, to)`, and JSON-safe `StartupMetrics.snapshot()`.
 
-- [ ] **Step 1: Define startup budgets**
+- [x] **Step 1: Define startup budgets**
 
   Enforce:
 
@@ -362,7 +362,7 @@
   - radio/music not required before the menu becomes interactive;
   - first map tile and player load before nonessential districts/assets.
 
-- [ ] **Step 2: Test metric transitions**
+- [x] **Step 2: Test metric transitions**
 
   Add a suite asserting ordered marks for:
 
@@ -372,7 +372,7 @@
 
   Reject duplicate terminal marks and negative durations.
 
-- [ ] **Step 3: Add real progress phases**
+- [x] **Step 3: Add real progress phases**
 
   `loading_screen.gd` must render the active phase and bounded progress:
 
@@ -384,7 +384,7 @@
 
   Do not show synthetic percentages disconnected from completed work.
 
-- [ ] **Step 4: Move nonessential work behind world interaction**
+- [x] **Step 4: Move nonessential work behind world interaction**
 
   In `game_world.gd` and `map_loader.gd`:
 
@@ -393,7 +393,7 @@
   - defer radio tracks, distant hero assets, Fall River/Brockton/Cape tiles, and large ambient pools;
   - cap work per frame through the existing `stream_tile_budget()`.
 
-- [ ] **Step 5: Enforce asset budgets**
+- [x] **Step 5: Enforce asset budgets**
 
   `check_asset_budget.py` must report and fail on:
 
@@ -407,7 +407,7 @@
 
   Run a browser trace twice: once after clearing only this site’s cache in an isolated test profile and once warm. Record menu-interactive and world-interactive timings in the release record.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
   ```bash
   git add QUAHOG_GODOT1/scripts/autoloads/startup_metrics.gd QUAHOG_GODOT1/scripts/autoloads/loading_screen.gd QUAHOG_GODOT1/scripts/main_menu.gd QUAHOG_GODOT1/scripts/game_world.gd QUAHOG_GODOT1/scripts/world/map_loader.gd QUAHOG_GODOT1/scripts/check_asset_budget.py QUAHOG_GODOT1/tests/test_startup_manifest.gd QUAHOG_GODOT1/export_presets.cfg

@@ -47,6 +47,63 @@ class BuildScriptTests(unittest.TestCase):
         self.assertIn("BuildInfo.display_string()", menu)
         self.assertGreaterEqual(hud.count("BuildInfo.display_string()"), 2)
 
+    def test_startup_uses_a_bounded_core_manifest(self) -> None:
+        loading = (PROJECT_ROOT / "scripts" / "autoloads" / "loading_screen.gd").read_text(
+            encoding="utf-8"
+        )
+        world = (PROJECT_ROOT / "scripts" / "game_world.gd").read_text(encoding="utf-8")
+
+        self.assertIn("CORE_PRELOAD_PATHS", loading)
+        self.assertIn('set_phase("LOADING CORE MAP")', loading)
+        self.assertNotIn('await _vfx_warmup()', loading)
+        self.assertIn('StartupMetrics.mark("world_interactive")', world)
+        self.assertIn('call_deferred("_start_deferred_city")', world)
+
+
+class AssetBudgetTests(unittest.TestCase):
+    def test_budget_checker_reports_every_budget_class(self) -> None:
+        checker = PROJECT_ROOT / "scripts" / "check_asset_budget.py"
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "assets/audio").mkdir(parents=True)
+            (root / "assets/ui").mkdir(parents=True)
+            (root / "assets/models").mkdir(parents=True)
+            (root / "build/web").mkdir(parents=True)
+            (root / "assets/audio/large.mp3").write_bytes(b"a" * 33)
+            (root / "assets/ui/large.png").write_bytes(b"b" * 33)
+            (root / "assets/models/large.glb").write_bytes(b"c" * 33)
+            (root / "assets/ui/menu.webp").write_bytes(b"d" * 33)
+            (root / "build/web/index.pck").write_bytes(os.urandom(64))
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(checker),
+                    "--project-root",
+                    str(root),
+                    "--export-dir",
+                    str(root / "build/web"),
+                    "--menu-asset",
+                    "assets/ui/menu.webp",
+                    "--max-audio-bytes",
+                    "32",
+                    "--max-texture-bytes",
+                    "32",
+                    "--max-glb-bytes",
+                    "32",
+                    "--max-menu-bytes",
+                    "32",
+                    "--max-payload-bytes",
+                    "32",
+                ],
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        for budget_class in ["audio", "texture", "GLB", "menu", "payload"]:
+            self.assertIn(budget_class, result.stdout)
+
 
 class BuildInfoGeneratorTests(unittest.TestCase):
     def _generate(self, commit_sha: str, build_date: str) -> str:

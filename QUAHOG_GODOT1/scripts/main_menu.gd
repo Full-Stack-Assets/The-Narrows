@@ -95,6 +95,12 @@ func _ready() -> void :
     _build_wordmark()
     _build_buttons()
     _build_text_overlay()
+    call_deferred("_mark_menu_visible")
+
+
+func _mark_menu_visible() -> void:
+    if StartupMetrics:
+        StartupMetrics.mark("menu_visible")
 
 
 # Web StartMenu parity: era tag, subtitle, a rotating tip, and the OSM
@@ -341,6 +347,8 @@ func _open_cheats() -> void :
 
 
 func _go_to_play() -> void :
+    if StartupMetrics:
+        StartupMetrics.mark("play_pressed")
     var loader: = get_node_or_null("/root/LoadingScreen")
     if loader and loader.has_method("preload_and_change_scene"):
         loader.preload_and_change_scene(PLAY_TARGET_SCENE)

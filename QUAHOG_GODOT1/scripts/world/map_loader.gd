@@ -139,6 +139,7 @@ func _pending_has(key: Vector2i) -> bool:
 var _roads_root: Node3D = null
 var _road_tiles: Dictionary = {}           # Vector2i tile -> Node3D
 var _junctions: Dictionary = {}
+var _distant_world_built: bool = false
 
 # Full data extent (slice x = east, y = north) with margin, for the ground plane,
 # road network, and land-use overlays (all built once up front). Extends ~82 km
@@ -190,14 +191,6 @@ func build_region(parent: Node3D, center_tile: Vector2i = Vector2i.ZERO, radius_
         _office_tex = load(OFFICE_PATH)
     if _asphalt_tex == null and ResourceLoader.exists(ASPHALT_PATH):
         _asphalt_tex = load(ASPHALT_PATH)
-    # Ground, land-use and the full road network span the whole South Coast and
-    # are built once. Buildings stream around the player (see stream_buildings).
-    _build_ground(parent, FULL_BBOX)
-    _build_overlays(parent, FULL_BBOX)
-    _build_trees(parent)
-    _build_braga_bridge(parent)
-    _build_battleship(parent)
-    _build_bridge_decks(parent)
     _buildings_root = Node3D.new()
     _buildings_root.name = "Buildings"
     parent.add_child(_buildings_root)
@@ -209,10 +202,33 @@ func build_region(parent: Node3D, center_tile: Vector2i = Vector2i.ZERO, radius_
     # stream per-tile in stream_buildings().
     _scan_slice(parent)
     _derive_spawns()
+    var core_center := Vector2(player_spawn.x, -player_spawn.z)
+    var core_bbox := Rect2(core_center - Vector2(750.0, 750.0), Vector2(1500.0, 1500.0))
+    _build_ground(parent, core_bbox)
+    prime_core(player_spawn)
+
+
+func prime_core(center: Vector3) -> void:
+    if _buildings_root == null or _roads_root == null:
+        return
+    var key := Vector2i(int(floor(center.x / TILE_M)), int(floor(-center.z / TILE_M)))
+    if not _road_tiles.has(key):
+        _build_road_tile(key)
+    if not _tiles.has(key):
+        _build_streamed_tile(key, _base_lod)
+
+
+func build_distant_world(parent: Node3D) -> void:
+    if _distant_world_built:
+        return
+    _distant_world_built = true
+    _build_ground(parent, FULL_BBOX)
+    _build_overlays(parent, FULL_BBOX)
+    _build_trees(parent)
+    _build_braga_bridge(parent)
+    _build_battleship(parent)
+    _build_bridge_decks(parent)
     _build_traffic_props(parent)
-    # Seed the tiles around the initial spawn (NB core) so the player loads into
-    # a built city immediately.
-    stream_buildings(player_spawn)
 
 
 # Build the building tiles within _stream_radius of center and free those that

@@ -51,3 +51,9 @@ mkdir -p "$PROJECT_ROOT/build/web"
 echo "Exporting Web build..."
 run_godot export --headless --quiet --path "$PROJECT_ROOT" \
   --export-release "Web" "build/web/index.html"
+
+echo "Exporting deferred content pack..."
+run_godot deferred-export --headless --quiet --path "$PROJECT_ROOT" \
+  --export-pack "Deferred Content" "build/web/deferred_content.pck"
+
+python3 scripts/check_asset_budget.py --export-dir build/web

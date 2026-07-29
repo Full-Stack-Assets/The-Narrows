@@ -295,6 +295,19 @@ const PRELOAD_PATHS: PackedStringArray = [
     "res://assets/props/weapons/shotgun.glb", 
 ]
 
+const CORE_PRELOAD_PATHS: PackedStringArray = [
+    "res://scenes/game_world.tscn",
+    "res://scenes/player.tscn",
+]
+
+const PHASE_PROGRESS: Dictionary = {
+    "STARTING": 0.08,
+    "LOADING CORE MAP": 0.35,
+    "SPAWNING PLAYER": 0.62,
+    "STARTING CITY": 0.82,
+    "READY": 1.0,
+}
+
 
 
 
@@ -316,6 +329,8 @@ func _ready() -> void :
     process_mode = Node.PROCESS_MODE_ALWAYS
     visible = false
     _build_ui()
+    if StartupMetrics and not StartupMetrics.phase_marked.is_connected(_on_startup_phase_marked):
+        StartupMetrics.phase_marked.connect(_on_startup_phase_marked)
 
 
 
@@ -437,7 +452,7 @@ func _build_ui() -> void :
 
 func _show() -> void :
     visible = true
-    set_progress(0.0)
+    set_phase("STARTING")
 
 
 func _hide() -> void :
@@ -447,8 +462,24 @@ func _hide() -> void :
 func set_progress(p: float) -> void :
     if _progress:
         _progress.value = clamp(p, 0.0, 1.0)
+
+
+func set_phase(phase: String) -> void:
     if _status:
-        _status.text = "Loading... %d%%" % int(p * 100.0)
+        _status.text = phase
+    set_progress(float(PHASE_PROGRESS.get(phase, 0.0)))
+
+
+func _on_startup_phase_marked(name: String, _elapsed_from_boot_ms: int) -> void:
+    match name:
+        "play_pressed":
+            set_phase("LOADING CORE MAP")
+        "core_map_ready":
+            set_phase("SPAWNING PLAYER")
+        "player_ready":
+            set_phase("STARTING CITY")
+        "world_interactive":
+            set_phase("READY")
 
 
 
@@ -457,17 +488,15 @@ func preload_and_change_scene(scene_path: String, min_display: float = 1.5) -> v
     if _busy: return
     _busy = true
     _show()
-    var t0: = Time.get_ticks_msec()
-    await get_tree().process_frame
     await get_tree().process_frame
     if not _preloaded:
         await _run_preload_sequence()
         _preloaded = true
     await _change_scene_to(scene_path)
-    await _vfx_warmup()
-    var elapsed: = float(Time.get_ticks_msec() - t0) / 1000.0
-    if elapsed < min_display:
-        await get_tree().create_timer(min_display - elapsed).timeout
+    while StartupMetrics and StartupMetrics.elapsed_ms("play_pressed", "world_interactive") < 0:
+        await get_tree().process_frame
+    set_phase("READY")
+    await get_tree().process_frame
     _hide()
     _busy = false
 
@@ -507,14 +536,13 @@ func change_scene(scene_path: String, min_display: float = 0.6) -> void :
 
 
 func _run_preload_sequence() -> void :
-    var total: = PRELOAD_PATHS.size()
+    var total: = CORE_PRELOAD_PATHS.size()
     if total == 0:
         set_progress(0.92)
         return
     for i in total:
-        var path: = PRELOAD_PATHS[i]
+        var path: = CORE_PRELOAD_PATHS[i]
         if _cache.has(path) or not ResourceLoader.exists(path):
-            set_progress(float(i + 1) / float(total) * 0.92)
             await get_tree().process_frame
             continue
         var res: = load(path)
@@ -523,7 +551,6 @@ func _run_preload_sequence() -> void :
         else:
             push_warning("LoadingScreen preload failed: " + path)
 
-        set_progress(float(i + 1) / float(total) * 0.92)
         await get_tree().process_frame
 
 
