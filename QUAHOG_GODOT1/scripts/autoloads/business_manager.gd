@@ -40,6 +40,26 @@ var _income_acc: float = 0.0
 var _active: bool = false
 
 
+func _ready() -> void:
+	if GameManager and not GameManager.business_state.is_empty():
+		restore(GameManager.business_state)
+
+
+func snapshot() -> Dictionary:
+	return {
+		"owned_mask": GameManager.owned_business_mask if GameManager else 0,
+		"revenue_accumulator": _rev_acc,
+		"next_revenue_event": _next_rev,
+		"income_accumulator": _income_acc,
+	}
+
+
+func restore(saved: Dictionary) -> void:
+	_rev_acc = maxf(float(saved.get("revenue_accumulator", 0.0)), 0.0)
+	_next_rev = maxf(float(saved.get("next_revenue_event", 75.0)), 1.0)
+	_income_acc = maxf(float(saved.get("income_accumulator", 0.0)), 0.0)
+
+
 func business_count() -> int:
 	return BUSINESSES.size()
 

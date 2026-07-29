@@ -1,5 +1,7 @@
 extends Node
 
+const SaveSchemaScript := preload("res://scripts/save/save_schema.gd")
+const SaveServiceScript := preload("res://scripts/save/save_service.gd")
 
 
 
@@ -14,7 +16,6 @@ signal open_shop_requested(shop_kind: String)
 signal open_diner_requested()
 signal graphics_quality_changed(level: int)
 
-const SAVE_PATH: = "user://mount_hope_save.json"
 const QUALITY_NAMES: PackedStringArray = ["Low", "Medium", "High"]
 const STARTING_CASH: = 40
 const SCRIMSHAW_TOTAL: int = 8
@@ -33,6 +34,21 @@ var player_spawn_override: = Vector3.ZERO
 var has_spawn_override: bool = false
 var scrimshaw_mask: int = 0
 var owned_business_mask: int = 0
+var mission_snapshot: Dictionary = {}
+var claimed_rewards: Array = []
+var activity_state: Dictionary = {}
+var business_state: Dictionary = {}
+var vehicle_state: Dictionary = {"identity": "", "condition": 1.0}
+var saved_health: float = 100.0
+var saved_armor: float = 0.0
+var accessibility_settings: Dictionary = {
+    "subtitles": true,
+    "subtitle_size": 1.0,
+    "high_contrast": false,
+    "reduced_motion": false,
+}
+var input_settings: Dictionary = {}
+var _save_service: SaveService
 
 # Cheats (toggled from the main-menu CHEATS panel; persisted with the save).
 # no_police suppresses all wanted-heat for testing. Defaults OFF so the crime loop bites.
@@ -230,6 +246,7 @@ func own_business(index: int) -> bool:
     return true
 
 func _ready() -> void :
+    _save_service = SaveServiceScript.new()
     _load_graphics_cfg()
     load_game()
 
@@ -269,78 +286,171 @@ func show_message(message: String) -> void :
     notify.emit(message)
 
 # Called by the player on a light interval so Continue resumes where you left off.
-func save_position(pos: Vector3, yaw: float) -> void :
+func save_player_state(pos: Vector3, yaw: float, health: float, armor: float, vehicle: Dictionary = {}) -> void:
     saved_pos = pos
     saved_yaw = yaw
+    saved_health = health
+    saved_armor = armor
+    if not vehicle.is_empty():
+        vehicle_state = vehicle.duplicate(true)
     has_saved_pos = true
     save_game()
 
+
+func save_position(pos: Vector3, yaw: float) -> void :
+    save_player_state(pos, yaw, saved_health, saved_armor)
+
+
 func has_save() -> bool:
-    return has_saved_pos or FileAccess.file_exists(SAVE_PATH)
+    return _save_service != null and _save_service.has_valid_save()
+
+
+func has_backup_save() -> bool:
+    return _save_service != null and _save_service.has_recoverable_backup()
+
+
+func recover_backup_save() -> Error:
+    if _save_service == null:
+        return ERR_UNCONFIGURED
+    var result := _save_service.recover_backup()
+    if result == OK:
+        load_game()
+    return result
 
 func save_game() -> void :
-    var data: = {
-        "cash": cash,
-        "missions_completed": missions_completed,
-        "wanted_level": wanted_level,
-        "faction_level": faction_level,
-        "campaign_format": 2,
-        "opener_complete": opener_complete,
-        "campaign_mi": campaign_mi,
-        "campaign_step": campaign_step,
-        "campaign_done": campaign_done,
-        "has_pos": has_saved_pos,
-        "px": saved_pos.x, "py": saved_pos.y, "pz": saved_pos.z,
-        "yaw": saved_yaw,
-        "scrimshaw_mask": scrimshaw_mask,
-        "owned_business_mask": owned_business_mask,
-        "cheats": _cheat_dict(),
-    }
-    var f: = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-    if f:
-        f.store_string(JSON.stringify(data))
-        f.close()
+    if _save_service == null:
+        return
+    if BusinessManager and BusinessManager.has_method("snapshot"):
+        business_state = BusinessManager.snapshot()
+    var result := _save_service.write(_build_save_snapshot())
+    if result != OK:
+        push_error("Save failed with error %d" % result)
 
 func load_game() -> void :
-    if not FileAccess.file_exists(SAVE_PATH):
+    if _save_service == null:
         return
-    var f: = FileAccess.open(SAVE_PATH, FileAccess.READ)
-    if not f:
+    var data := _save_service.read()
+    if data.is_empty():
         return
-    var text: = f.get_as_text()
-    f.close()
-    var parsed: Variant = JSON.parse_string(text)
-    if typeof(parsed) != TYPE_DICTIONARY:
-        return
-    var data: Dictionary = parsed
-    cash = int(data.get("cash", STARTING_CASH))
-    missions_completed = int(data.get("missions_completed", 0))
-    wanted_level = int(data.get("wanted_level", 0))
-    faction_level = int(data.get("faction_level", 0))
-    var fmt: int = int(data.get("campaign_format", 1))
-    campaign_format = fmt
-    # v2 campaign inserts "The Undefeated" at index 6 — bump saves already past Acquitted.
-    if fmt < 2 and campaign_mi >= 6 and not campaign_done:
-        campaign_mi += 1
-        campaign_format = 2
-    opener_complete = bool(data.get("opener_complete", false))
-    campaign_mi = int(data.get("campaign_mi", 0 if not opener_complete else 1))
-    campaign_step = int(data.get("campaign_step", 0))
-    campaign_done = bool(data.get("campaign_done", false))
+    var player: Dictionary = data["player"]
+    var economy: Dictionary = data["economy"]
+    var heat: Dictionary = data["heat"]
+    var mission: Dictionary = data["mission"]
+    var businesses: Dictionary = data["businesses"]
+    var world: Dictionary = data["world"]
+    var settings: Dictionary = data["settings"]
+    var campaign: Dictionary = data["legacy_campaign"]
+    cash = int(economy["cash"])
+    missions_completed = int(campaign["missions_completed"])
+    wanted_level = int(heat["police"])
+    faction_level = int(heat["faction"])
+    campaign_format = int(campaign["format"])
+    opener_complete = bool(campaign["opener_complete"])
+    campaign_mi = int(campaign["mission_index"])
+    campaign_step = int(campaign["mission_step"])
+    campaign_done = bool(campaign["done"])
+    mission_snapshot = mission["snapshot"].duplicate(true)
+    claimed_rewards = mission["claimed_rewards"].duplicate(true)
     var cd: Variant = data.get("cheats", {})
     if cd is Dictionary:
         _load_cheats(cd)
-    has_saved_pos = bool(data.get("has_pos", false))
+    has_saved_pos = bool(player["has_position"])
     if has_saved_pos:
-        saved_pos = Vector3(float(data.get("px", 0.0)), float(data.get("py", 0.0)), float(data.get("pz", 0.0)))
-        saved_yaw = float(data.get("yaw", 0.0))
-    scrimshaw_mask = int(data.get("scrimshaw_mask", 0))
+        var position: Array = player["position"]
+        saved_pos = Vector3(float(position[0]), float(position[1]), float(position[2]))
+        saved_yaw = float(player["yaw"])
+    saved_health = float(player["health"])
+    saved_armor = float(player["armor"])
+    scrimshaw_mask = int(data["collectibles"]["scrimshaw_mask"])
+    owned_business_mask = int(businesses["owned_mask"])
+    business_state = businesses.duplicate(true)
+    activity_state = data["activities"].duplicate(true)
+    vehicle_state = data["vehicle"].duplicate(true)
+    day_phase = float(world["day_phase"])
+    raining = bool(world["raining"])
+    gloria_storm_active = bool(world["gloria_storm"])
+    graphics_quality = clampi(int(settings["graphics"]["quality"]), 0, 2)
+    _apply_audio_settings(settings["audio"])
+    input_settings = settings["input"].duplicate(true)
+    accessibility_settings = settings["accessibility"].duplicate(true)
     scrimshaw_changed.emit(scrimshaw_found())
-    owned_business_mask = int(data.get("owned_business_mask", 0))
     businesses_changed.emit(businesses_owned())
     cash_changed.emit(cash)
 
 func reset_save() -> void :
+    if _save_service == null:
+        return
+    var result := _save_service.clear_progress_preserve_settings()
+    if result != OK:
+        push_error("New Game reset failed with error %d" % result)
+        return
+    _apply_blank_progress()
+    load_game()
+
+
+func _build_save_snapshot() -> Dictionary:
+    var data := SaveSchemaScript.blank()
+    data["saved_at"] = Time.get_datetime_string_from_system(true, true)
+    data["source_build_sha"] = BuildInfo.COMMIT_SHA if BuildInfo else "local"
+    data["player"] = {
+        "has_position": has_saved_pos,
+        "position": [saved_pos.x, saved_pos.y, saved_pos.z],
+        "yaw": saved_yaw,
+        "health": saved_health,
+        "armor": saved_armor,
+    }
+    data["economy"] = {"cash": cash, "reputation": missions_completed}
+    data["heat"] = {"police": wanted_level, "faction": faction_level}
+    data["mission"] = {
+        "snapshot": mission_snapshot.duplicate(true),
+        "claimed_rewards": claimed_rewards.duplicate(true),
+    }
+    var businesses: Dictionary = business_state.duplicate(true)
+    businesses["owned_mask"] = owned_business_mask
+    data["businesses"] = SaveSchemaScript.with_defaults({"businesses": businesses})["businesses"]
+    data["collectibles"] = {"scrimshaw_mask": scrimshaw_mask}
+    data["activities"] = activity_state.duplicate(true)
+    data["vehicle"] = vehicle_state.duplicate(true)
+    data["world"] = {
+        "day_phase": day_phase,
+        "raining": raining,
+        "gloria_storm": gloria_storm_active,
+    }
+    data["settings"] = {
+        "graphics": {"quality": graphics_quality},
+        "audio": _audio_settings(),
+        "input": input_settings.duplicate(true),
+        "accessibility": accessibility_settings.duplicate(true),
+    }
+    data["legacy_campaign"] = {
+        "format": campaign_format,
+        "opener_complete": opener_complete,
+        "mission_index": campaign_mi,
+        "mission_step": campaign_step,
+        "done": campaign_done,
+        "missions_completed": missions_completed,
+    }
+    data["cheats"] = _cheat_dict()
+    return data
+
+
+func _audio_settings() -> Dictionary:
+    var values := {"master_db": 0.0, "music_db": 0.0, "sfx_db": 0.0}
+    for pair in [["Master", "master_db"], ["Music", "music_db"], ["SFX", "sfx_db"]]:
+        var bus_index := AudioServer.get_bus_index(pair[0])
+        if bus_index >= 0:
+            values[pair[1]] = AudioServer.get_bus_volume_db(bus_index)
+    return values
+
+
+func _apply_audio_settings(values: Dictionary) -> void:
+    for pair in [["Master", "master_db"], ["Music", "music_db"], ["SFX", "sfx_db"]]:
+        var bus_index := AudioServer.get_bus_index(pair[0])
+        if bus_index >= 0:
+            AudioServer.set_bus_volume_db(bus_index, float(values.get(pair[1], 0.0)))
+
+
+func _apply_blank_progress() -> void:
     cash = STARTING_CASH
     missions_completed = 0
     wanted_level = 0
@@ -350,12 +460,18 @@ func reset_save() -> void :
     campaign_mi = 0
     campaign_step = 0
     campaign_done = false
+    mission_snapshot = {}
+    claimed_rewards = []
     has_saved_pos = false
     saved_pos = Vector3.ZERO
     saved_yaw = 0.0
+    saved_health = 100.0
+    saved_armor = 0.0
     scrimshaw_mask = 0
-    scrimshaw_changed.emit(0)
     owned_business_mask = 0
+    business_state = {}
+    activity_state = {}
+    vehicle_state = {"identity": "", "condition": 1.0}
+    scrimshaw_changed.emit(0)
     businesses_changed.emit(0)
     cash_changed.emit(cash)
-    save_game()

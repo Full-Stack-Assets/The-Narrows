@@ -63,6 +63,7 @@ var _click_sfx_stream: AudioStream = null
 var _wordmark: TextureRect = null
 var _font: Font = null
 var _cheats_overlay: Control = null
+var _new_game_dialog: ConfirmationDialog = null
 
 # Quick-start spawn presets for testing (world XZ; y lifted so you drop onto the
 # street). Lets you jump straight into any corner of the South Coast.
@@ -247,6 +248,8 @@ func _build_buttons() -> void :
     var gm: = get_node_or_null("/root/GameManager")
     if gm and gm.has_method("has_save") and gm.has_save():
         vbox.add_child(_make_text_button("▶ CONTINUE", _on_continue_pressed))
+    elif gm and gm.has_method("has_backup_save") and gm.has_backup_save():
+        vbox.add_child(_make_text_button("↻ RECOVER SAVE", _on_continue_pressed))
 
     var n: = BUTTON_IDS.size()
     for i in n:
@@ -272,6 +275,10 @@ func _make_text_button(text: String, cb: Callable) -> Button:
 func _on_continue_pressed() -> void :
     _play_click_sfx()
     var gm: = get_node_or_null("/root/GameManager")
+    if gm and gm.has_method("has_save") and not gm.has_save():
+        if not gm.has_method("recover_backup_save") or gm.recover_backup_save() != OK:
+            _show_notice("Save recovery failed", "The backup could not be validated. Start a New Game to continue.")
+            return
     if gm and "has_saved_pos" in gm and gm.has_saved_pos:
         gm.player_spawn_override = gm.saved_pos
         gm.has_spawn_override = true
@@ -327,11 +334,46 @@ func _on_button_pressed(id: String) -> void :
 
 func _on_new_game() -> void :
     var gm: = get_node_or_null("/root/GameManager")
+    if gm and (
+        (gm.has_method("has_save") and gm.has_save())
+        or (gm.has_method("has_backup_save") and gm.has_backup_save())
+    ):
+        _confirm_new_game()
+        return
+    _start_new_game()
+
+
+func _confirm_new_game() -> void:
+    if _new_game_dialog and is_instance_valid(_new_game_dialog):
+        _new_game_dialog.popup_centered()
+        return
+    _new_game_dialog = ConfirmationDialog.new()
+    _new_game_dialog.title = "Start New Game?"
+    _new_game_dialog.dialog_text = "This resets story progress, cash, collectibles, activities, and vehicles. Your settings are preserved."
+    _new_game_dialog.ok_button_text = "Start New Game"
+    _new_game_dialog.cancel_button_text = "Keep Save"
+    _new_game_dialog.confirmed.connect(_start_new_game)
+    add_child(_new_game_dialog)
+    _new_game_dialog.popup_centered(Vector2i(620, 220))
+
+
+func _start_new_game() -> void:
+    var gm: = get_node_or_null("/root/GameManager")
     if gm:
         gm.has_spawn_override = false
         if gm.has_method("reset_save"):
             gm.reset_save()
     _go_to_play()
+
+
+func _show_notice(title: String, message: String) -> void:
+    var dialog := AcceptDialog.new()
+    dialog.title = title
+    dialog.dialog_text = message
+    dialog.confirmed.connect(dialog.queue_free)
+    dialog.canceled.connect(dialog.queue_free)
+    add_child(dialog)
+    dialog.popup_centered(Vector2i(580, 180))
 
 
 # --- Cheats / test panel ----------------------------------------------------

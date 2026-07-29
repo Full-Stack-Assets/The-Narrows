@@ -609,6 +609,8 @@ func _build_pause() -> void :
     vbox.add_child(legal)
 
     vbox.add_child(_menu_button("Resume", _toggle_pause))
+    vbox.add_child(_menu_button("Restart Checkpoint", _restart_checkpoint))
+    vbox.add_child(_menu_button("Save & Quit", _save_and_quit))
     vbox.add_child(_menu_button("Settings", _open_settings))
     vbox.add_child(_menu_button("Controls", _open_controls))
     vbox.add_child(_menu_button("Edit Controls", func(): _toggle_pause();_toggle_edit()))
@@ -1251,6 +1253,33 @@ func _go_to_menu() -> void :
         ls.change_scene("res://scenes/main.tscn")
         return
     get_tree().change_scene_to_file("res://scenes/main.tscn")
+
+
+func _restart_checkpoint() -> void:
+    if _story_mission and _story_mission.has_method("restart_checkpoint"):
+        _story_mission.restart_checkpoint()
+        GameManager.show_message("Checkpoint restarted.")
+    _toggle_pause()
+
+
+func _save_and_quit() -> void:
+    if _player and is_instance_valid(_player) and GameManager:
+        var vehicle := {}
+        if _player.current_car and is_instance_valid(_player.current_car):
+            vehicle = {
+                "identity": str(_player.current_car.get("model_path")),
+                "condition": 1.0 - float(_player.current_car.get_damage_percent()),
+            }
+        GameManager.save_player_state(
+            _player.global_position,
+            _player.get_map_heading(),
+            _player.health,
+            _player.armor,
+            vehicle
+        )
+    elif GameManager:
+        GameManager.save_game()
+    _go_to_menu()
 
 
 func _apply_font(ctrl: Control, fsize: int, color: Color) -> void :

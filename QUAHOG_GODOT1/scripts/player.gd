@@ -690,8 +690,14 @@ func _physics_process(delta: float) -> void :
     _autosave_t += delta
     if _autosave_t >= 5.0:
         _autosave_t = 0.0
-        if not dead and GameManager and GameManager.has_method("save_position"):
-            GameManager.save_position(global_position, get_map_heading())
+        if not dead and GameManager and GameManager.has_method("save_player_state"):
+            var vehicle := {}
+            if _driving and current_car and is_instance_valid(current_car):
+                vehicle = {
+                    "identity": str(current_car.get("model_path")),
+                    "condition": 1.0 - float(current_car.get_damage_percent()),
+                }
+            GameManager.save_player_state(global_position, get_map_heading(), health, armor, vehicle)
 
 
     if not dead and health < max_health:

@@ -621,7 +621,7 @@
   SaveMigrations.to_current(data: Dictionary) -> Dictionary
   ```
 
-- [ ] **Step 1: Define schema version 3**
+- [x] **Step 1: Define schema version 3**
 
   Include:
 
@@ -635,7 +635,7 @@
   - graphics/audio/input/accessibility settings;
   - save timestamp and source build SHA.
 
-- [ ] **Step 2: Test old-save migration**
+- [x] **Step 2: Test old-save migration**
 
   Add fixtures for:
 
@@ -647,22 +647,22 @@
 
   Assert settings survive “New Game” while progress resets.
 
-- [ ] **Step 3: Implement atomic write and backup**
+- [x] **Step 3: Implement atomic write and backup**
 
   Write and validate `save.tmp.json`, rotate the previous valid primary to `save.backup.json`, then rename the temporary file to `the_narrows_save.json`.
 
-- [ ] **Step 4: Remove persistence from `game_manager.gd`**
+- [x] **Step 4: Remove persistence from `game_manager.gd`**
 
   `game_manager.gd` owns runtime state and delegates all file work to `SaveService`. Preserve compatibility through migrations; do not continue writing `mount_hope_save.json`.
 
-- [ ] **Step 5: Fix menu behavior**
+- [x] **Step 5: Fix menu behavior**
 
   - Continue appears only for a valid save.
   - New Game confirms before replacing progress.
   - Corrupt primary offers backup recovery.
   - Pause exposes Restart Checkpoint and Save & Quit.
 
-- [ ] **Step 6: Verify and commit**
+- [x] **Step 6: Verify and commit**
 
   ```bash
   godot --headless --path QUAHOG_GODOT1 --script res://tests/test_runner.gd

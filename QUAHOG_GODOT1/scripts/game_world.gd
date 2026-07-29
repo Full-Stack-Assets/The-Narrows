@@ -1070,6 +1070,8 @@ func _spawn_player() -> void :
         _player.global_position = GameManager.player_spawn_override
         if GameManager.has_saved_pos and _player.has_method("set_heading"):
             _player.set_heading(GameManager.saved_yaw)
+            _player.health = clampi(int(GameManager.saved_health), 1, _player.max_health)
+            _player.armor = maxi(int(GameManager.saved_armor), 0)
         # Seed the building stream around the override (e.g. a cheat spawn far from
         # downtown) so you don't drop into an empty area before _process catches up.
         if _city and _city.has_method("stream_buildings"):

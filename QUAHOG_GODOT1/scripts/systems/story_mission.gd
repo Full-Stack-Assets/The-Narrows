@@ -57,8 +57,14 @@ func try_start_opener() -> void:
 	runtime.objective_changed.connect(_on_objective_changed)
 	runtime.mission_completed.connect(_on_runtime_completed)
 	runtime.mission_failed.connect(_on_runtime_failed)
+	var saved_snapshot: Dictionary = GameManager.mission_snapshot.duplicate(true)
 	runtime.start(definition)
-	if GameManager.campaign_step > 0:
+	if (
+		not saved_snapshot.is_empty()
+		and str(saved_snapshot.get("mission_id", "")) == definition.id
+	):
+		runtime.restore(saved_snapshot)
+	elif GameManager.campaign_step > 0:
 		var saved := runtime.snapshot()
 		saved["objective_index"] = mini(GameManager.campaign_step, definition.objectives.size() - 1)
 		saved["objective_id"] = str(definition.objectives[int(saved["objective_index"])]["id"])
@@ -192,6 +198,7 @@ func _on_objective_changed(objective_id: String) -> void:
 	if runtime == null:
 		return
 	GameManager.campaign_step = runtime.progress.objective_index
+	GameManager.mission_snapshot = runtime.snapshot()
 	GameManager.save_game()
 	if objective_id == "reach_fish_pier" and _dialogue:
 		_dialogue.start("deacon_intro")
@@ -331,12 +338,15 @@ func _clear_marker() -> void:
 
 
 func _on_runtime_completed(reward: int, effects: Dictionary) -> void:
-	if reward > 0:
+	var reward_already_claimed := GameManager.claimed_rewards.has(definition.id)
+	if reward > 0 and not reward_already_claimed:
 		GameManager.add_cash_silent(reward)
+		GameManager.claimed_rewards.append(definition.id)
 	if bool(effects.get("opener_complete", false)):
 		GameManager.opener_complete = true
 	GameManager.campaign_step = definition.objectives.size()
 	GameManager.campaign_done = true
+	GameManager.mission_snapshot = runtime.snapshot()
 	GameManager.record_mission_complete()
 	GameManager.save_game()
 	_clear_marker()
@@ -346,6 +356,8 @@ func _on_runtime_completed(reward: int, effects: Dictionary) -> void:
 
 
 func _on_runtime_failed(reason: String) -> void:
+	if runtime:
+		GameManager.mission_snapshot = runtime.snapshot()
 	GameManager.save_game()
 	mission_failed.emit(reason)
 	GameManager.show_message("Mission failed: %s" % reason)
