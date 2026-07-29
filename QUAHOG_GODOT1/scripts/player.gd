@@ -666,12 +666,26 @@ func _unhandled_input(event: InputEvent) -> void :
         or event.is_action_pressed("move_right")
     ):
         _emit_tutorial_action("move_look")
-    if event.is_action_pressed("fire") or event.is_action_pressed("aim"):
-        _emit_tutorial_action("attack_aim")
-    if event.is_action_pressed("jump"):
-        do_jump()
+    if event.is_action_pressed("fire"):
+        set_fire_held(true)
+    elif event.is_action_released("fire"):
+        set_fire_held(false)
+    if event.is_action_pressed("aim"):
+        set_aim(true)
+    elif event.is_action_released("aim"):
+        set_aim(false)
     if event.is_action_pressed("interact"):
         do_interact()
+    if event.is_action_pressed("enter_vehicle"):
+        try_enter_vehicle()
+    if event.is_action_pressed("reload"):
+        do_reload()
+    if event.is_action_pressed("weapon_next"):
+        switch_weapon()
+    if event.is_action_pressed("crouch"):
+        set_crouch(true)
+    elif event.is_action_released("crouch"):
+        set_crouch(false)
 
 
 func _emit_tutorial_action(action: String) -> void:
@@ -685,6 +699,9 @@ func _physics_process(delta: float) -> void :
     _fire_cooldown = max(0.0, _fire_cooldown - delta)
     _hurt_sfx_cd = max(0.0, _hurt_sfx_cd - delta)
     _invuln = max(0.0, _invuln - delta)
+    var stick_look := Input.get_vector("look_left", "look_right", "look_up", "look_down")
+    if stick_look.length() > 0.15:
+        add_camera_look(stick_look * 180.0 * delta)
 
     # Light autosave so the menu's Continue resumes where you left off.
     _autosave_t += delta

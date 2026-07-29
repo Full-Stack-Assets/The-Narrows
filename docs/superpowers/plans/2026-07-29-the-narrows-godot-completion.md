@@ -693,7 +693,7 @@
 
 - Produces: `LayoutProfile.for_viewport(size: Vector2, safe_area: Rect2) -> Dictionary`.
 
-- [ ] **Step 1: Test target viewports**
+- [x] **Step 1: Test target viewports**
 
   Assert profiles for:
 
@@ -704,7 +704,7 @@
 
   Profiles must keep pause, mission, minimap, radio, and action bounds inside the usable rectangle with no pairwise overlap among critical controls.
 
-- [ ] **Step 2: Implement responsive layout profiles**
+- [x] **Step 2: Implement responsive layout profiles**
 
   Use containers/anchors for:
 
@@ -714,15 +714,15 @@
 
   Scroll pause/settings content when height is below `600 px`. Hide keyboard help on touch and expose it from pause.
 
-- [ ] **Step 3: Normalize input actions**
+- [x] **Step 3: Normalize input actions**
 
   Add keyboard and standard gamepad bindings for movement, look, interact, enter/exit, attack, aim, reload, weapon selection, map, pause, dialogue advance/skip, and checkpoint restart.
 
-- [ ] **Step 4: Preserve editable touch controls safely**
+- [x] **Step 4: Preserve editable touch controls safely**
 
   Keep drag/resize/edit mode, but provide Reset Layout and ensure no saved control can be restored entirely outside the current safe area.
 
-- [ ] **Step 5: Create the vertical-slice gate**
+- [x] **Step 5: Create the vertical-slice gate**
 
   `plans/vertical-slice-release-checklist.md` must require:
 
@@ -737,7 +737,7 @@
   - no console/script errors;
   - 30-minute stability session.
 
-- [ ] **Step 6: Verify and commit**
+- [x] **Step 6: Verify and commit**
 
   ```bash
   godot --headless --path QUAHOG_GODOT1 --script res://tests/test_runner.gd

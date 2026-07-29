@@ -71,10 +71,14 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_active():
 		return
-	if event.is_action_pressed("ui_accept") or event.is_action_pressed("interact"):
+	if (
+		event.is_action_pressed("dialogue_advance")
+		or event.is_action_pressed("ui_accept")
+		or event.is_action_pressed("interact")
+	):
 		advance()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("ui_cancel"):
+	elif event.is_action_pressed("dialogue_skip") or event.is_action_pressed("ui_cancel"):
 		skip()
 		get_viewport().set_input_as_handled()
 

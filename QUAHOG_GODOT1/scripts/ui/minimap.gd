@@ -39,6 +39,14 @@ func _ready() -> void :
     _font = load("res://assets/fonts/noto_serif.ttf")
 
 
+func apply_layout(rect: Rect2) -> void:
+    set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+    position = rect.position
+    custom_minimum_size = rect.size
+    size = rect.size
+    queue_redraw()
+
+
 func _process(delta: float) -> void :
     _pulse = fmod(_pulse + delta * 3.0, TAU)
     queue_redraw()

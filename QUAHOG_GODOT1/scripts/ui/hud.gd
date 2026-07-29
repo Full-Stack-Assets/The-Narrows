@@ -10,6 +10,7 @@ const VirtualJoystick: = preload("res://scripts/ui/virtual_joystick.gd")
 const TouchButton: = preload("res://scripts/ui/touch_button.gd")
 const TouchCamera: = preload("res://scripts/ui/touch_camera.gd")
 const MinimapScript: = preload("res://scripts/ui/minimap.gd")
+const LayoutProfileScript := preload("res://scripts/ui/layout_profile.gd")
 
 const DESIGN: = Vector2(1920, 1080)
 const LAYOUT_PATH: = "user://controls_layout.json"
@@ -54,6 +55,12 @@ var _armor_bar: ProgressBar = null
 var _job_manager: Node = null
 var _wanted_system: Node = null
 var _story_mission: Node = null
+var _layout_profile: Dictionary = {}
+var _utility_controls: Dictionary = {}
+var _action_controls: Array[Control] = []
+var _pause_scroll: ScrollContainer = null
+var _settings_scroll: ScrollContainer = null
+var _controls_help_label: Label = null
 
 var _joystick
 var _look_area
@@ -94,7 +101,9 @@ func _ready() -> void :
     _build_edit_banner()
     _build_debug()
 
+    _apply_layout_profile(false)
     _load_layout()
+    get_viewport().size_changed.connect(_on_viewport_size_changed)
 
     if GameManager:
         GameManager.cash_changed.connect(_on_cash_changed)
@@ -118,16 +127,6 @@ func bind_player(player: CharacterBody3D) -> void :
         _joystick.joystick_input.connect(_player.set_move_input)
     if _look_area:
         _look_area.look_delta.connect(_player.add_camera_look)
-
-    _wire_tap("jump", _player.do_jump)
-    _wire_tap("interact", _player.do_interact)
-    _wire_hold("fire", _player.set_fire_held)
-    _wire_tap("reload", _player.do_reload)
-    _wire_tap("vehicle", _player.try_enter_vehicle)
-    _wire_tap("swap", _player.switch_weapon)
-    _wire_hold("sprint", _player.set_sprint)
-    _wire_hold("aim", _player.set_aim)
-    _wire_hold("crouch", _player.set_crouch)
 
     if _player.has_signal("interactable_changed"):
         _player.interactable_changed.connect(_on_interactable_changed)
@@ -524,7 +523,7 @@ func _build_touch_controls() -> void :
         {"id": "aim", "label": "AIM", "accent": Color(0.42, 0.46, 0.5), "hold": true, "action": "aim", "pos": Vector2(1492, 764)},
         {"id": "reload", "label": "RLD", "accent": Color(0.46, 0.46, 0.48), "hold": false, "action": "reload", "pos": Vector2(1352, 904)},
         {"id": "crouch", "label": "DUCK", "accent": Color(0.35, 0.5, 0.32), "hold": true, "action": "crouch", "pos": Vector2(1352, 764)},
-        {"id": "swap", "label": "SWAP", "accent": Color(0.55, 0.4, 0.6), "hold": false, "action": "swap", "pos": Vector2(1212, 904)},
+        {"id": "swap", "label": "SWAP", "accent": Color(0.55, 0.4, 0.6), "hold": false, "action": "weapon_next", "pos": Vector2(1212, 904)},
         {"id": "handbrake", "label": "BRAKE", "accent": Color(0.7, 0.5, 0.2), "hold": true, "action": "handbrake", "pos": Vector2(1212, 764)},
         {"id": "horn", "label": "HORN", "accent": Color(0.35, 0.48, 0.62), "hold": false, "action": "horn", "pos": Vector2(1072, 764)},
     ]
@@ -539,6 +538,7 @@ func _build_touch_controls() -> void :
         b.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
         b.position = s["pos"]
         _buttons[s["id"]] = b
+        _action_controls.append(b)
         _register_editable(b, s["id"])
 
 
@@ -558,6 +558,7 @@ func _build_pause() -> void :
     pause_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
     pause_btn.position = Vector2(28, 28)
     pause_btn.pressed.connect(_toggle_pause)
+    _utility_controls["pause"] = pause_btn
 
 
     var edit_btn: = TouchButton.new()
@@ -569,6 +570,7 @@ func _build_pause() -> void :
     edit_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
     edit_btn.position = Vector2(140, 28)
     edit_btn.pressed.connect(_toggle_edit)
+    _utility_controls["edit"] = edit_btn
 
     _pause_panel = Control.new()
     _pause_panel.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -585,9 +587,14 @@ func _build_pause() -> void :
     _pause_panel.add_child(center)
     center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
+    _pause_scroll = ScrollContainer.new()
+    _pause_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+    _pause_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+    center.add_child(_pause_scroll)
+
     var vbox: = VBoxContainer.new()
     vbox.add_theme_constant_override("separation", 22)
-    center.add_child(vbox)
+    _pause_scroll.add_child(vbox)
 
     var title: = Label.new()
     title.text = "PAUSED"
@@ -638,10 +645,15 @@ func _build_settings() -> void :
     _settings_panel.add_child(center)
     center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
+    _settings_scroll = ScrollContainer.new()
+    _settings_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+    _settings_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+    center.add_child(_settings_scroll)
+
     var vbox: = VBoxContainer.new()
     vbox.add_theme_constant_override("separation", 18)
     vbox.custom_minimum_size = Vector2(540, 0)
-    center.add_child(vbox)
+    _settings_scroll.add_child(vbox)
 
     var title: = Label.new()
     title.text = "SETTINGS"
@@ -700,11 +712,11 @@ func _build_controls() -> void :
     _apply_font(title, 56, Color(0.96, 0.81, 0.45))
     panel.add_child(title)
 
-    var body: = Label.new()
-    body.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-    body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-    body.custom_minimum_size = Vector2(760, 0)
-    body.text = "\n".join([
+    _controls_help_label = Label.new()
+    _controls_help_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+    _controls_help_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    _controls_help_label.custom_minimum_size = Vector2(760, 0)
+    _controls_help_label.text = "\n".join([
         "Move  WASD / left stick",
         "Jump  SPACE",
         "Sprint  SHIFT",
@@ -720,8 +732,8 @@ func _build_controls() -> void :
         "Sleep at safehouse  T",
         "Pause  ESC",
     ])
-    _apply_font(body, 24, Color(0.92, 0.9, 0.86))
-    panel.add_child(body)
+    _apply_font(_controls_help_label, 24, Color(0.92, 0.9, 0.86))
+    panel.add_child(_controls_help_label)
 
     panel.add_child(_menu_button("Back", _close_controls))
 
@@ -812,6 +824,7 @@ func _build_radio() -> void :
     radio_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
     radio_btn.position = Vector2(264, 28)
     radio_btn.pressed.connect(_on_radio_pressed)
+    _utility_controls["radio"] = radio_btn
 
     var map_btn: = TouchButton.new()
     map_btn.control_id = "map"
@@ -823,6 +836,7 @@ func _build_radio() -> void :
     map_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
     map_btn.position = Vector2(416, 28)
     map_btn.pressed.connect(_on_map_pressed)
+    _utility_controls["map"] = map_btn
 
     var cam_btn: = TouchButton.new()
     cam_btn.control_id = "cam"
@@ -834,6 +848,7 @@ func _build_radio() -> void :
     cam_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
     cam_btn.position = Vector2(556, 28)
     cam_btn.pressed.connect(_on_cam_pressed)
+    _utility_controls["camera"] = cam_btn
 
     _clock_label = Label.new()
     _apply_font(_clock_label, 26, Color(0.96, 0.92, 0.78))
@@ -1059,6 +1074,18 @@ func _input(event: InputEvent) -> void :
             _story_mission.set_input_device("gamepad")
         elif event is InputEventKey or event is InputEventMouseButton or event is InputEventMouseMotion:
             _story_mission.set_input_device("keyboard")
+    if not _edit_mode and event.is_action_pressed("pause"):
+        _toggle_pause()
+        get_viewport().set_input_as_handled()
+        return
+    if not _edit_mode and not get_tree().paused and event.is_action_pressed("map"):
+        _on_map_pressed()
+        get_viewport().set_input_as_handled()
+        return
+    if not _edit_mode and event.is_action_pressed("restart_checkpoint"):
+        _restart_checkpoint()
+        get_viewport().set_input_as_handled()
+        return
     if not _edit_mode:
         return
     if event is InputEventScreenTouch or event is InputEventMouseButton:
@@ -1101,8 +1128,9 @@ func _begin_drag(screen_pos: Vector2) -> bool:
 
 func _clamp_into_screen(ctrl: Control) -> void :
     var vis_size: Vector2 = ctrl.size * ctrl.scale
-    ctrl.position.x = clampf(ctrl.position.x, 0.0, DESIGN.x - vis_size.x)
-    ctrl.position.y = clampf(ctrl.position.y, 0.0, DESIGN.y - vis_size.y)
+    var usable: Rect2 = _layout_profile.get("usable", Rect2(Vector2.ZERO, DESIGN))
+    var recovered := LayoutProfileScript.clamp_rect(Rect2(ctrl.position, vis_size), usable)
+    ctrl.position = recovered.position
 
 
 func _reset_layout() -> void :
@@ -1140,9 +1168,119 @@ func _load_layout() -> void :
         if parsed.has(e.control_id):
             var c: Dictionary = parsed[e.control_id]
             e.position = Vector2(float(c.get("x", e.position.x)), float(c.get("y", e.position.y)))
-            var s: float = float(c.get("s", 1.0))
+            var s: float = clampf(float(c.get("s", 1.0)), 0.45, 1.75)
             e.scale = Vector2(s, s)
+            _clamp_into_screen(e)
             e.queue_redraw()
+
+
+func _on_viewport_size_changed() -> void:
+    _apply_layout_profile(true)
+
+
+func _apply_layout_profile(resized: bool) -> void:
+    var viewport_size := get_viewport().get_visible_rect().size
+    _layout_profile = LayoutProfileScript.for_viewport(viewport_size, _viewport_safe_area(viewport_size))
+    for key in ["pause", "radio", "map", "camera"]:
+        if _utility_controls.has(key):
+            _apply_control_rect(_utility_controls[key], _layout_profile[key])
+    if _utility_controls.has("edit"):
+        var pause_rect: Rect2 = _layout_profile["pause"]
+        var edit_control: Control = _utility_controls["edit"]
+        edit_control.visible = str(_layout_profile["mode"]) != "touch"
+        _apply_control_rect(
+            edit_control,
+            Rect2(pause_rect.end + Vector2(12, -pause_rect.size.y), Vector2(108, pause_rect.size.y))
+        )
+    if _minimap:
+        if _minimap.has_method("apply_layout"):
+            _minimap.apply_layout(_layout_profile["minimap"])
+        else:
+            _apply_control_rect(_minimap, _layout_profile["minimap"])
+    if _objective_panel:
+        _apply_control_rect(_objective_panel, _layout_profile["mission"])
+    if _look_area and _look_area.has_method("set_safe_area"):
+        _look_area.set_safe_area(_layout_profile["usable"])
+
+    var show_touch := bool(_layout_profile["touch_controls_visible"]) or OS.has_feature("mobile")
+    _joystick.visible = show_touch
+    for control in _action_controls:
+        control.visible = show_touch
+    if not resized:
+        _place_touch_controls(_layout_profile["actions"], _layout_profile["joystick"])
+    else:
+        _clamp_into_screen(_joystick)
+        for control in _action_controls:
+            _clamp_into_screen(control)
+
+    var usable: Rect2 = _layout_profile["usable"]
+    var scroll_height := usable.size.y - 32.0 if bool(_layout_profile["scroll_pause"]) else minf(900.0, usable.size.y - 48.0)
+    if _pause_scroll:
+        _pause_scroll.custom_minimum_size = Vector2(minf(620.0, usable.size.x - 24.0), scroll_height)
+    if _settings_scroll:
+        _settings_scroll.custom_minimum_size = Vector2(minf(580.0, usable.size.x - 24.0), scroll_height)
+    _update_controls_help()
+
+
+func _update_controls_help() -> void:
+    if _controls_help_label == null:
+        return
+    if bool(_layout_profile.get("keyboard_help_visible", true)):
+        _controls_help_label.text = "\n".join([
+            "Move  WASD / left stick",
+            "Look  Mouse / right stick",
+            "Jump  SPACE / south button",
+            "Sprint  SHIFT / left stick",
+            "Use / dialogue  E / south button",
+            "Enter / exit car  F / west button",
+            "Fire / aim  Mouse / triggers",
+            "Reload  R / north button",
+            "Swap weapon  Q / shoulder",
+            "Map  M / Select",
+            "Pause  ESC / Start",
+            "Restart checkpoint  K / D-pad down",
+        ])
+    else:
+        _controls_help_label.text = "\n".join([
+            "Move with the left stick · swipe open space to look",
+            "Use the labeled action buttons to jump, aim, fire, reload, and enter vehicles",
+            "Open MAP, RADIO, and pause from the top row",
+            "Choose Edit Controls to move or resize touch controls",
+        ])
+
+
+func _place_touch_controls(action_bounds: Rect2, joystick_bounds: Rect2) -> void:
+    var joystick_scale := joystick_bounds.size.x / maxf(_joystick.size.x, 1.0)
+    _joystick.position = joystick_bounds.position
+    _joystick.scale = Vector2.ONE * joystick_scale
+    _defaults[_joystick.control_id] = {"pos": _joystick.position, "scale": joystick_scale}
+    var columns := 5
+    var cell := Vector2(action_bounds.size.x / columns, action_bounds.size.y / 3.0)
+    for i in _action_controls.size():
+        var control := _action_controls[i]
+        var scale_factor := minf(
+            (cell.x - 4.0) / maxf(control.size.x, 1.0),
+            (cell.y - 4.0) / maxf(control.size.y, 1.0)
+        )
+        control.scale = Vector2.ONE * scale_factor
+        control.position = action_bounds.position + Vector2(i % columns, i / columns) * cell
+        _defaults[control.control_id] = {"pos": control.position, "scale": scale_factor}
+
+
+func _apply_control_rect(control: Control, rect: Rect2) -> void:
+    control.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+    control.position = rect.position
+    control.custom_minimum_size = rect.size
+    control.size = rect.size
+
+
+func _viewport_safe_area(viewport_size: Vector2) -> Rect2:
+    var display_size := Vector2(DisplayServer.screen_get_size())
+    var safe := Rect2(DisplayServer.get_display_safe_area())
+    if not safe.has_area() or display_size.x <= 0.0 or display_size.y <= 0.0:
+        return Rect2()
+    var factor := viewport_size / display_size
+    return Rect2(safe.position * factor, safe.size * factor)
 
 
 
@@ -1256,10 +1394,12 @@ func _go_to_menu() -> void :
 
 
 func _restart_checkpoint() -> void:
+    var was_paused := get_tree().paused
     if _story_mission and _story_mission.has_method("restart_checkpoint"):
         _story_mission.restart_checkpoint()
         GameManager.show_message("Checkpoint restarted.")
-    _toggle_pause()
+    if was_paused:
+        _toggle_pause()
 
 
 func _save_and_quit() -> void:
