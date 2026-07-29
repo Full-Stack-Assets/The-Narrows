@@ -13,7 +13,11 @@ static func run(t: Variant) -> void:
 		not build_info.display_string().is_empty(),
 		"BuildInfo display string is non-empty",
 	)
-	t.assert_eq(build_info.COMMIT_SHA, "local", "fallback SHA is local")
+	t.assert_eq(
+		build_info_script.format_display("local", "unknown-date"),
+		"local · unknown-date",
+		"fallback SHA is local",
+	)
 	t.assert_eq(
 		build_info_script.format_display(
 			"0123456789abcdef0123456789abcdef01234567",
