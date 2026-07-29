@@ -37,13 +37,17 @@ run_godot() {
 cd "$PROJECT_ROOT"
 python3 -m unittest tests/test_build_scripts.py
 
+if [ -d "$PROJECT_ROOT/build/web" ]; then
+  rm -r -- "$PROJECT_ROOT/build/web"
+fi
+
 echo "Importing project..."
-run_godot import --headless --path "$PROJECT_ROOT" --import
+run_godot import --headless --quiet --path "$PROJECT_ROOT" --import
 
 echo "Running Godot smoke tests..."
 run_godot tests --headless --path "$PROJECT_ROOT" --script res://tests/test_runner.gd
 
 mkdir -p "$PROJECT_ROOT/build/web"
 echo "Exporting Web build..."
-run_godot export --headless --path "$PROJECT_ROOT" \
+run_godot export --headless --quiet --path "$PROJECT_ROOT" \
   --export-release "Web" "build/web/index.html"

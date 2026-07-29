@@ -2,6 +2,10 @@
 """Regression checks for the strict, cross-platform Godot verification gate."""
 
 from pathlib import Path
+import os
+import subprocess
+import sys
+import tempfile
 import unittest
 
 
@@ -25,6 +29,8 @@ class BuildScriptTests(unittest.TestCase):
 
         self.assertTrue(verify_script.is_file())
         self.assertTrue(verify_script.stat().st_mode & 0o111)
+        contents = verify_script.read_text(encoding="utf-8")
+        self.assertIn('rm -r -- "$PROJECT_ROOT/build/web"', contents)
 
     def test_ci_runs_the_strict_gate(self) -> None:
         workflow = REPO_ROOT / ".github" / "workflows" / "godot-ci.yml"
@@ -33,6 +39,60 @@ class BuildScriptTests(unittest.TestCase):
         contents = workflow.read_text(encoding="utf-8")
         self.assertIn("bash build_web.sh", contents)
         self.assertIn("actions/upload-artifact", contents)
+
+    def test_provenance_is_rendered_in_menu_pause_and_debug_ui(self) -> None:
+        menu = (PROJECT_ROOT / "scripts" / "main_menu.gd").read_text(encoding="utf-8")
+        hud = (PROJECT_ROOT / "scripts" / "ui" / "hud.gd").read_text(encoding="utf-8")
+
+        self.assertIn("BuildInfo.display_string()", menu)
+        self.assertGreaterEqual(hud.count("BuildInfo.display_string()"), 2)
+
+
+class BuildInfoGeneratorTests(unittest.TestCase):
+    def _generate(self, commit_sha: str, build_date: str) -> str:
+        generator = PROJECT_ROOT / "scripts" / "generate_build_info.py"
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output = Path(temp_dir) / "build_info.gd"
+            environment = os.environ.copy()
+            environment["VERCEL_GIT_COMMIT_SHA"] = commit_sha
+            environment["BUILD_DATE"] = build_date
+            subprocess.run(
+                [sys.executable, str(generator), "--output", str(output)],
+                check=True,
+                cwd=PROJECT_ROOT,
+                env=environment,
+            )
+            return output.read_text(encoding="utf-8")
+
+    def test_empty_values_generate_local_fallbacks(self) -> None:
+        contents = self._generate("", "")
+
+        self.assertIn('const COMMIT_SHA := "local"', contents)
+        self.assertIn('const BUILD_DATE := "unknown-date"', contents)
+
+    def test_full_sha_and_build_date_are_embedded(self) -> None:
+        sha = "0123456789abcdef0123456789abcdef01234567"
+        contents = self._generate(sha, "2026-07-29T15:00:00Z")
+
+        self.assertIn(f'const COMMIT_SHA := "{sha}"', contents)
+        self.assertIn('const BUILD_DATE := "2026-07-29T15:00:00Z"', contents)
+
+    def test_invalid_sha_is_rejected(self) -> None:
+        generator = PROJECT_ROOT / "scripts" / "generate_build_info.py"
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output = Path(temp_dir) / "build_info.gd"
+            environment = os.environ.copy()
+            environment["VERCEL_GIT_COMMIT_SHA"] = "not-a-commit"
+            result = subprocess.run(
+                [sys.executable, str(generator), "--output", str(output)],
+                cwd=PROJECT_ROOT,
+                env=environment,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("40 lowercase hexadecimal", result.stderr)
 
 
 if __name__ == "__main__":

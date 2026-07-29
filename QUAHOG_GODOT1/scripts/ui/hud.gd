@@ -559,6 +559,12 @@ func _build_pause() -> void :
     _apply_font(_pause_stats_label, 22, Color(0.9, 0.9, 0.84))
     vbox.add_child(_pause_stats_label)
 
+    var legal: = Label.new()
+    legal.text = "THE NARROWS · Map data © OpenStreetMap contributors, ODbL\nBUILD " + BuildInfo.display_string()
+    legal.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    _apply_font(legal, 16, Color(0.72, 0.72, 0.74))
+    vbox.add_child(legal)
+
     vbox.add_child(_menu_button("Resume", _toggle_pause))
     vbox.add_child(_menu_button("Settings", _open_settings))
     vbox.add_child(_menu_button("Controls", _open_controls))
@@ -876,7 +882,8 @@ func _update_debug(delta: float) -> void :
     var vmem: float = Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0
     var objs: int = int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
     var lines: = ["FPS %d   draw %d   prim %dk" % [int(fps), draw, int(prims / 1000.0)],
-                  "vram %.0f MB   nodes %d" % [vmem, objs]]
+                  "vram %.0f MB   nodes %d" % [vmem, objs],
+                  "build " + BuildInfo.display_string()]
     if _player != null and is_instance_valid(_player):
         var p: Vector3 = _player.global_position
         lines.append("pos %.0f, %.0f   tile %d_%d" % [p.x, -p.z, int(floor(p.x / 500.0)), int(floor(-p.z / 500.0))])

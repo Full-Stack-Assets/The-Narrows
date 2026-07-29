@@ -68,6 +68,15 @@ mkdir -p "$TPL_DIR"
 cp "$HERE/.godot-templates/web_nothreads_release.zip" "$TPL_DIR/"
 echo "${TPL_VERSION}" > "$TPL_DIR/version.txt"
 
+export BUILD_DATE="${BUILD_DATE:-$(date -u +"%Y-%m-%dT%H:%M:%SZ")}"
+python3 "$HERE/scripts/generate_build_info.py"
+
+restore_local_build_info() {
+  VERCEL_GIT_COMMIT_SHA="" BUILD_DATE="" \
+    python3 "$HERE/scripts/generate_build_info.py"
+}
+trap restore_local_build_info EXIT
+
 GODOT_BIN="$GODOT_BIN" bash "$HERE/scripts/verify.sh"
 
 echo "Web build ready in build/web:"

@@ -2,6 +2,7 @@ extends SceneTree
 
 const SUITES: Array[Script] = [
 	preload("res://tests/test_smoke.gd"),
+	preload("res://tests/test_build_info.gd"),
 ]
 
 var assertions: int = 0

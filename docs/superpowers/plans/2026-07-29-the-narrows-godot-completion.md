@@ -262,7 +262,7 @@
 
 - Produces: `BuildInfo.commit_sha`, `BuildInfo.build_date`, `BuildInfo.display_string()`.
 
-- [ ] **Step 1: Add a failing build-info test**
+- [x] **Step 1: Add a failing build-info test**
 
   Create `tests/test_build_info.gd` and add it to the runner. Assert:
 
@@ -270,7 +270,7 @@
   - fallback SHA is `"local"`;
   - a supplied 40-character SHA renders its first seven characters.
 
-- [ ] **Step 2: Generate build metadata before export**
+- [x] **Step 2: Generate build metadata before export**
 
   `generate_build_info.py` reads `VERCEL_GIT_COMMIT_SHA` and `BUILD_DATE` from the build environment, validates the SHA as either `local` or 40 lowercase hexadecimal characters, and writes:
 
@@ -287,7 +287,7 @@
 
   Empty environment values become `local` and `unknown-date`. Invoke the generator from `build_web.sh` immediately before import/export and register `BuildInfo` as an autoload. The exported game must not depend on runtime access to Vercel environment variables.
 
-- [ ] **Step 3: Remove embedded legacy title art**
+- [x] **Step 3: Remove embedded legacy title art**
 
   Replace the four title/cover assets with current The Narrows art. The image pixels must not contain:
 
@@ -297,7 +297,7 @@
 
   Keep the menu’s text wordmark as the accessible/fallback title.
 
-- [ ] **Step 4: Display provenance**
+- [x] **Step 4: Display provenance**
 
   Show `BuildInfo.display_string()`:
 
@@ -305,7 +305,7 @@
   - in the pause/legal panel;
   - in a small HUD debug line when debug display is enabled.
 
-- [ ] **Step 5: Record deployment identity**
+- [x] **Step 5: Record deployment identity**
 
   `docs/releases/deployment-record.md` must contain a table with:
 

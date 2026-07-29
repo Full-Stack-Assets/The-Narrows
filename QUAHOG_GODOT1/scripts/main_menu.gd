@@ -130,6 +130,16 @@ func _build_text_overlay() -> void :
     tip.offset_top = -110
     tip.offset_bottom = -64
 
+    var build: = _make_label("BUILD " + BuildInfo.display_string(), 14, Color(0.72, 0.72, 0.76, 0.72))
+    build.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    add_child(build)
+    build.anchor_left = 0.0
+    build.anchor_right = 1.0
+    build.anchor_bottom = 1.0
+    build.anchor_top = 1.0
+    build.offset_top = -58
+    build.offset_bottom = -36
+
     var attrib: = _make_label("Map data © OpenStreetMap contributors, ODbL · An original work", 16, Color(0.7, 0.7, 0.74, 0.6))
     attrib.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     add_child(attrib)
@@ -187,7 +197,7 @@ func _build_background() -> void :
 
 
 func _build_wordmark() -> void :
-    # Text title (replaces legacy Mount Hope wordmark PNG until new key art ships).
+    # Text stays authoritative and accessible over the text-free key art.
     var title: = _make_label("THE NARROWS", 88, Color(1.0, 1.0, 1.0, 0.98))
     title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     title.add_theme_constant_override("outline_size", 8)
