@@ -769,23 +769,23 @@
 
 - Produces: activity start/checkpoint/fail/complete/reward transitions shared by race and harbor run.
 
-- [ ] **Step 1: Test activity transitions**
+- [x] **Step 1: Test activity transitions**
 
   Cover ordered checkpoints, skipped checkpoint rejection, timeout, abandon, best-time update, reward-once, and save restore.
 
-- [ ] **Step 2: Implement boat mode**
+- [x] **Step 2: Implement boat mode**
 
   Boat behavior must include board/exit, throttle, steer, buoyancy/bob, camera, wake, safe recovery, and water-hazard exemption only while aboard.
 
-- [ ] **Step 3: Implement the New Bedford race**
+- [x] **Step 3: Implement the New Bedford race**
 
   Use a compact road circuit in the authored district. Include start confirmation, ordered checkpoints, timer, best time, payout, cancel, and reset.
 
-- [ ] **Step 4: Implement the harbor run**
+- [x] **Step 4: Implement the harbor run**
 
   Use the same activity runtime with boat checkpoints and Coast Guard/police heat hooks. Do not require a new ocean simulation.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
   ```bash
   godot --headless --path QUAHOG_GODOT1 --script res://tests/test_runner.gd

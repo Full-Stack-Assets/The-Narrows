@@ -23,6 +23,13 @@ func _physics_process(delta: float) -> void :
     if GameManager and GameManager.cheat_godmode:
         _in_water = 0.0
         return
+    if (
+        bool(player.get("_boating"))
+        and player.get("current_boat") != null
+        and is_instance_valid(player.get("current_boat"))
+    ):
+        _in_water = 0.0
+        return
 
     var pos: Vector3 = player.global_position
     var driving: bool = false

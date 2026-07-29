@@ -44,6 +44,7 @@ var _objective_label: Label = null
 var _objective_panel: Control = null
 var _tutorial_label: Label = null
 var _subtitle_label: Label = null
+var _activity_label: Label = null
 var _obj_active: bool = false
 var _obj_text: String = ""
 var _obj_target: Vector3 = Vector3.ZERO
@@ -163,6 +164,14 @@ func bind_story(story: Node) -> void :
         _story_mission.tutorial_prompt_changed.connect(_on_tutorial_prompt_changed)
 
 
+func bind_activities(activities: Array) -> void:
+    for activity in activities:
+        if activity and activity.has_signal("activity_changed"):
+            activity.activity_changed.connect(_on_activity_changed)
+        if activity and activity.has_signal("start_confirmation_requested"):
+            activity.start_confirmation_requested.connect(_on_activity_confirmation)
+
+
 func _wire_tap(id: String, cb: Callable) -> void :
     if _buttons.has(id):
         _buttons[id].pressed.connect(cb)
@@ -236,6 +245,17 @@ func _build_gameplay_panels() -> void :
     _tutorial_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
     _tutorial_label.position = Vector2(-340, 88)
     _tutorial_label.custom_minimum_size = Vector2(680, 58)
+
+    _activity_label = Label.new()
+    _activity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    _activity_label.visible = false
+    _apply_font(_activity_label, 24, Color(0.45, 0.9, 1.0))
+    _activity_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+    _activity_label.add_theme_constant_override("outline_size", 5)
+    _root.add_child(_activity_label)
+    _activity_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+    _activity_label.position = Vector2(-340, 150)
+    _activity_label.custom_minimum_size = Vector2(680, 44)
 
     _subtitle_label = Label.new()
     _subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -368,6 +388,20 @@ func _on_tutorial_prompt_changed(text: String) -> void:
         return
     _tutorial_label.visible = not text.is_empty()
     _tutorial_label.text = text
+
+
+func _on_activity_changed(_activity_id: String, active: bool, text: String) -> void:
+    if _activity_label:
+        _activity_label.visible = active
+        _activity_label.text = text
+    if active and _tutorial_label and _tutorial_label.text.begins_with("Press USE to start"):
+        _tutorial_label.visible = false
+
+
+func _on_activity_confirmation(_activity_id: String, title: String) -> void:
+    if _tutorial_label:
+        _tutorial_label.visible = true
+        _tutorial_label.text = "Press USE to start %s · X / east button to cancel" % title
 
 
 func _set_objective(active: bool, text: String, target: Vector3) -> void :
@@ -1405,7 +1439,9 @@ func _restart_checkpoint() -> void:
 func _save_and_quit() -> void:
     if _player and is_instance_valid(_player) and GameManager:
         var vehicle := {}
-        if _player.current_car and is_instance_valid(_player.current_car):
+        if _player.current_boat and is_instance_valid(_player.current_boat):
+            vehicle = {"identity": "boat", "condition": 1.0}
+        elif _player.current_car and is_instance_valid(_player.current_car):
             vehicle = {
                 "identity": str(_player.current_car.get("model_path")),
                 "condition": 1.0 - float(_player.current_car.get_damage_percent()),

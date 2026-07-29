@@ -27,6 +27,8 @@ const DinerInteriorScript: = preload("res://scripts/world/diner_interior.gd")
 const DinerMenuScript: = preload("res://scripts/ui/diner_menu.gd")
 const NeonSignsScript: = preload("res://scripts/world/neon_signs.gd")
 const HeroHubsScript: = preload("res://scripts/world/hero_hubs.gd")
+const BoatScene := preload("res://scenes/boat.tscn")
+const StreetRaceScript := preload("res://scripts/activities/street_race.gd")
 
 # Cars everywhere: every parked car is a real, takeable drivable car (parked
 # cars are frozen/dormant in car.gd, so a full map costs almost nothing until you
@@ -117,6 +119,8 @@ var _job_manager: Node = null
 var _wanted_system: Node = null
 var _story_mission: Node = null
 var _water_hazard: Node = null
+var _boat: Node3D = null
+var _activities: Array = []
 var _ambient_player: AudioStreamPlayer = null
 var _tod_life_t: float = 0.0
 var _day_phase_override_pending: bool = false
@@ -190,6 +194,7 @@ func _start_deferred_city() -> void:
         _city.stream_buildings(_player.global_position)
     await get_tree().process_frame
     _place_cars()
+    _build_activities()
     await get_tree().process_frame
     _spawn_traffic()
     await get_tree().process_frame
@@ -897,6 +902,31 @@ func _build_systems() -> void :
         _hud.bind_story(_story_mission)
     if _story_mission and _story_mission.has_signal("mission_completed"):
         _story_mission.mission_completed.connect(_on_mission_completed)
+
+
+func _build_activities() -> void:
+    if _player == null or _boat != null:
+        return
+    _boat = BoatScene.instantiate()
+    add_child(_boat)
+    if _boat.has_method("place_at"):
+        _boat.place_at(Vector3(160.0, 1.0, -90.0), 0.0)
+    if _player.has_method("register_boats"):
+        _player.register_boats([_boat])
+
+    for definition_path in [
+        "res://data/activities/new_bedford_race.json",
+        "res://data/activities/harbor_run.json",
+    ]:
+        var activity := Node.new()
+        activity.set_script(StreetRaceScript)
+        add_child(activity)
+        if activity.setup(definition_path, _player, self, _boat) == OK:
+            _activities.append(activity)
+        else:
+            activity.queue_free()
+    if _hud and _hud.has_method("bind_activities"):
+        _hud.bind_activities(_activities)
 
 
 func _job_locations() -> Array[Vector3]:

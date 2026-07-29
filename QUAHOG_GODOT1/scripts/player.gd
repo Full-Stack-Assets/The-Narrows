@@ -67,6 +67,9 @@ var _autosave_t: float = 0.0
 
 var _driving: bool = false
 var current_car: Node = null
+var _boating: bool = false
+var current_boat: Node = null
+var _boats: Array = []
 # Free-look orbit while driving — accumulates look input, eases back to centre.
 # Yaw is clamped so the chase cam never swings to the side/front (profile view
 # makes car-local throttle read as sideways on screen and feels inverted).
@@ -251,6 +254,10 @@ func register_cars(cars: Array) -> void :
     _cars = cars
 
 
+func register_boats(boats: Array) -> void:
+    _boats = boats
+
+
 func register_traffic(cars: Array) -> void :
     _traffic_cars = cars
 
@@ -283,7 +290,7 @@ func add_ammo(id: String, amount: int) -> bool:
     return true
 
 func switch_weapon() -> void :
-    if _driving or _weapon_order.size() <= 1:
+    if _driving or _boating or _weapon_order.size() <= 1:
         return
     var idx: = _weapon_order.find(_current_weapon)
     idx = (idx + 1) % _weapon_order.size()
@@ -345,7 +352,7 @@ func set_fire_held(active: bool) -> void :
         do_fire()
 
 func do_fire() -> void :
-    if _driving or dead:
+    if _driving or _boating or dead:
         return
     if _fire_cooldown > 0.0:
         return
@@ -445,7 +452,7 @@ func _melee_attack(def: Dictionary) -> void :
                 wanted_system.add_faction_heat(1)
 
 func do_reload() -> void :
-    if _driving or dead:
+    if _driving or _boating or dead:
         return
     var def: = WeaponDB.get_def(_current_weapon)
     if def.get("melee", false) or not _weapons.has(_current_weapon):
@@ -520,6 +527,8 @@ func _die() -> void :
     dead = false
 
 func _respawn() -> void :
+    if _boating:
+        exit_boat()
     if _driving:
         exit_car()
     if home_spawn != Vector3.ZERO:
@@ -547,6 +556,12 @@ func fast_travel_to(target: Vector3) -> void :
             GameManager.show_message("Can't fast-travel there.")
         return
     var ground: float = (hit["position"] as Vector3).y
+    if _boating and current_boat != null and is_instance_valid(current_boat) and current_boat.has_method("place_at"):
+        current_boat.place_at(Vector3(target.x, maxf(ground, 0.8), target.z), rad_to_deg(get_map_heading()))
+        velocity = Vector3.ZERO
+        if GameManager:
+            GameManager.show_message("Fast travelled (with boat).")
+        return
     if _driving and current_car != null and is_instance_valid(current_car) and current_car.has_method("place_at"):
         # The car-follow in _physics_process slaves the player to the car, so we
         # only need to move the car; it parks stationary at the destination.
@@ -562,8 +577,22 @@ func fast_travel_to(target: Vector3) -> void :
 
 
 func try_enter_vehicle() -> void :
+    if _boating:
+        exit_boat()
+        return
     if _driving:
         exit_car()
+        return
+    var nearest_boat: Node = null
+    var nearest_boat_distance := 8.5
+    for candidate in _boats:
+        if is_instance_valid(candidate):
+            var boat_distance := global_position.distance_to(candidate.global_position)
+            if boat_distance < nearest_boat_distance:
+                nearest_boat_distance = boat_distance
+                nearest_boat = candidate
+    if nearest_boat:
+        enter_boat(nearest_boat)
         return
     var world: = get_tree().get_first_node_in_group("game_world")
     if world and world.has_method("find_carjackable_traffic"):
@@ -589,6 +618,36 @@ func try_enter_vehicle() -> void :
 func snap_drive_camera() -> void :
     if _driving and current_car != null and is_instance_valid(current_car) and current_car.has_method("_snap_camera"):
         current_car._snap_camera()
+
+
+func enter_boat(boat: Node) -> void:
+    _boating = true
+    current_boat = boat
+    set_collision_layer_value(2, false)
+    _set_capsule(true)
+    visible = false
+    velocity = Vector3.ZERO
+    if boat.has_method("enter"):
+        boat.enter(self)
+    driving_changed.emit(true)
+    vehicle_entered.emit(str(boat.get("mission_entity_id")))
+
+
+func exit_boat() -> void:
+    if not _boating or current_boat == null:
+        return
+    var position := global_position + Vector3(2.5, 0.6, 0)
+    if current_boat.has_method("exit"):
+        position = current_boat.exit()
+    _boating = false
+    current_boat = null
+    global_position = position
+    visible = true
+    set_collision_layer_value(2, true)
+    _set_capsule(false)
+    if camera:
+        camera.make_current()
+    driving_changed.emit(false)
 
 
 func enter_car(car: Node) -> void :
@@ -632,6 +691,8 @@ func _set_capsule(disabled: bool) -> void :
             c.set_deferred("disabled", disabled)
 
 func on_busted() -> void :
+    if _boating:
+        exit_boat()
     if _driving:
         exit_car()
     global_position = home_spawn if home_spawn != Vector3.ZERO else global_position
@@ -639,6 +700,10 @@ func on_busted() -> void :
 
 
 func recover_from_water(pos: Vector3, in_car: bool) -> void :
+    if _boating and current_boat and is_instance_valid(current_boat):
+        if current_boat.has_method("recover_safe"):
+            current_boat.recover_safe()
+        return
     if in_car and current_car != null and is_instance_valid(current_car) and current_car.has_method("place_at"):
         current_car.place_at(pos, get_map_heading())
     global_position = pos
@@ -650,6 +715,8 @@ func set_heading(yaw: float) -> void :
 
 
 func get_map_heading() -> float:
+    if _boating and current_boat and is_instance_valid(current_boat) and current_boat.has_method("get_heading"):
+        return current_boat.get_heading()
     if _driving and current_car and is_instance_valid(current_car) and "vehicle_model" in current_car and current_car.vehicle_model:
         return current_car.vehicle_model.rotation.y
     return mesh_root.rotation.y if mesh_root else 0.0
@@ -709,7 +776,9 @@ func _physics_process(delta: float) -> void :
         _autosave_t = 0.0
         if not dead and GameManager and GameManager.has_method("save_player_state"):
             var vehicle := {}
-            if _driving and current_car and is_instance_valid(current_car):
+            if _boating and current_boat and is_instance_valid(current_boat):
+                vehicle = {"identity": "boat", "condition": 1.0}
+            elif _driving and current_car and is_instance_valid(current_car):
                 vehicle = {
                     "identity": str(current_car.get("model_path")),
                     "condition": 1.0 - float(current_car.get_damage_percent()),
@@ -727,11 +796,19 @@ func _physics_process(delta: float) -> void :
                 health_changed.emit(health, max_health, armor)
 
 
-    if _fire_held and not _driving and not dead:
+    if _fire_held and not _driving and not _boating and not dead:
         var adef: = WeaponDB.get_def(_current_weapon)
         if adef.get("auto", false):
             do_fire()
 
+
+    if _boating:
+        if current_boat == null or not is_instance_valid(current_boat):
+            _boating = false
+            current_boat = null
+        else:
+            global_position = current_boat.global_position
+            return
 
     if _driving:
         if current_car == null or not is_instance_valid(current_car):

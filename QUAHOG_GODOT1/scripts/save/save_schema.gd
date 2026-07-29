@@ -86,6 +86,10 @@ static func is_valid(data: Dictionary) -> bool:
 
 
 static func _merge_known(target: Dictionary, source: Dictionary) -> void:
+	if target.is_empty():
+		for open_key in source:
+			target[open_key] = source[open_key].duplicate(true) if source[open_key] is Dictionary or source[open_key] is Array else source[open_key]
+		return
 	for key in source:
 		if not target.has(key):
 			continue

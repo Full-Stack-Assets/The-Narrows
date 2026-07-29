@@ -51,10 +51,14 @@ static func run(t: SceneTree) -> void:
 	first["economy"]["cash"] = 111
 	first["settings"]["graphics"]["quality"] = 2
 	first["settings"]["accessibility"]["subtitles"] = false
+	first["mission"]["snapshot"] = {"mission_id": "off_the_boat", "objective_index": 3}
+	first["activities"] = {"new_bedford_race": {"best_time": 42.5}}
 	t.assert_eq(service.write(first), OK, "first save writes atomically")
 	t.assert_true(service.has_valid_save(), "written save validates")
 	t.assert_true(not str(service.read()["saved_at"]).is_empty(), "writes include an ISO save timestamp")
 	t.assert_true(service.read().has("source_build_sha"), "writes include source build provenance")
+	t.assert_eq(service.read()["mission"]["snapshot"]["objective_index"], 3, "open mission snapshot data survives normalization")
+	t.assert_eq(service.read()["activities"]["new_bedford_race"]["best_time"], 42.5, "activity results survive normalization")
 
 	var second := first.duplicate(true)
 	second["economy"]["cash"] = 222
