@@ -41,6 +41,8 @@ var _minimap: Control = null
 var _big_map: Control = null
 var _objective_label: Label = null
 var _objective_panel: Control = null
+var _tutorial_label: Label = null
+var _subtitle_label: Label = null
 var _obj_active: bool = false
 var _obj_text: String = ""
 var _obj_target: Vector3 = Vector3.ZERO
@@ -156,6 +158,10 @@ func bind_story(story: Node) -> void :
     _story_mission = story
     if _story_mission and _story_mission.has_signal("mission_changed"):
         _story_mission.mission_changed.connect(_on_story_changed)
+    if _story_mission and _story_mission.has_signal("subtitle_changed"):
+        _story_mission.subtitle_changed.connect(_on_subtitle_changed)
+    if _story_mission and _story_mission.has_signal("tutorial_prompt_changed"):
+        _story_mission.tutorial_prompt_changed.connect(_on_tutorial_prompt_changed)
 
 
 func _wire_tap(id: String, cb: Callable) -> void :
@@ -221,6 +227,29 @@ func _build_gameplay_panels() -> void :
     _objective_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     _apply_font(_objective_label, 26, Color(0.96, 0.86, 0.6))
     omargin.add_child(_objective_label)
+
+    _tutorial_label = Label.new()
+    _tutorial_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    _tutorial_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    _tutorial_label.visible = false
+    _apply_font(_tutorial_label, 22, Color(0.82, 0.92, 1.0))
+    _root.add_child(_tutorial_label)
+    _tutorial_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+    _tutorial_label.position = Vector2(-340, 88)
+    _tutorial_label.custom_minimum_size = Vector2(680, 58)
+
+    _subtitle_label = Label.new()
+    _subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    _subtitle_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    _subtitle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    _subtitle_label.visible = false
+    _subtitle_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+    _subtitle_label.add_theme_constant_override("outline_size", 7)
+    _apply_font(_subtitle_label, 30, Color(1.0, 0.96, 0.84))
+    _root.add_child(_subtitle_label)
+    _subtitle_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+    _subtitle_label.position = Vector2(-540, -210)
+    _subtitle_label.custom_minimum_size = Vector2(1080, 100)
 
 
     _ammo_label = Label.new()
@@ -326,6 +355,20 @@ func _on_job_changed(active: bool, text: String, target: Vector3) -> void :
 
 func _on_story_changed(active: bool, text: String, target: Vector3) -> void :
     _set_objective(active, text, target)
+
+
+func _on_subtitle_changed(speaker: String, text: String) -> void:
+    if _subtitle_label == null:
+        return
+    _subtitle_label.visible = not text.is_empty()
+    _subtitle_label.text = ("%s: %s" % [speaker, text]) if not speaker.is_empty() else text
+
+
+func _on_tutorial_prompt_changed(text: String) -> void:
+    if _tutorial_label == null:
+        return
+    _tutorial_label.visible = not text.is_empty()
+    _tutorial_label.text = text
 
 
 func _set_objective(active: bool, text: String, target: Vector3) -> void :
@@ -840,6 +883,8 @@ func _on_radio_pressed() -> void :
 func _on_map_pressed() -> void :
     if _big_map and _big_map.has_method("toggle"):
         _big_map.toggle()
+    if _story_mission and _story_mission.has_method("mark_tutorial_action"):
+        _story_mission.mark_tutorial_action("map")
 
 
 func _on_cam_pressed() -> void :
@@ -1005,6 +1050,13 @@ func _unhandled_key_input(event: InputEvent) -> void :
 
 
 func _input(event: InputEvent) -> void :
+    if _story_mission and _story_mission.has_method("set_input_device"):
+        if event is InputEventScreenTouch or event is InputEventScreenDrag:
+            _story_mission.set_input_device("touch")
+        elif event is InputEventJoypadButton or event is InputEventJoypadMotion:
+            _story_mission.set_input_device("gamepad")
+        elif event is InputEventKey or event is InputEventMouseButton or event is InputEventMouseMotion:
+            _story_mission.set_input_device("keyboard")
     if not _edit_mode:
         return
     if event is InputEventScreenTouch or event is InputEventMouseButton:
@@ -1184,6 +1236,8 @@ func _toggle_pause() -> void :
     _pause_panel.visible = paused
     if paused:
         _refresh_pause_stats()
+        if _story_mission and _story_mission.has_method("mark_tutorial_action"):
+            _story_mission.mark_tutorial_action("pause_save")
     if not paused and _settings_panel:
         _settings_panel.visible = false
     if not paused and _controls_panel:

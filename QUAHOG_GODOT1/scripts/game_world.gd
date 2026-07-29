@@ -793,17 +793,46 @@ func _place_streetlights() -> void :
 func _spawn_contacts() -> void :
 
     var spots: = [
-        [_city.mission_giver_pos if _city else Vector3(12, 0, 14), _city.mission_giver_rot if _city else 200.0], 
+        [Vector3(-272.0, 0.0, -106.0), 180.0],
         [Vector3(58.0, 0, 50.0), 220.0], 
         [Vector3(-54.0, 0, -46.0), 30.0], 
     ]
-    for s in spots:
+    for index in spots.size():
+        var s: Array = spots[index]
         var contact: = Node3D.new()
         contact.set_script(MISSION_GIVER_SCRIPT)
+        if index == 0:
+            contact.name = "Deacon"
+            contact.mission_entity_id = "deacon"
+            contact.interact_prompt = "Talk to Deacon"
         add_child(contact)
         contact.global_position = s[0]
         contact.rotation_degrees.y = s[1]
         _contacts.append(contact)
+
+
+func prepare_mission_getaway_car() -> Node:
+    if _drivable_cars.is_empty():
+        _spawn_drivable_car(
+            {
+                "path": "res://assets/props/vehicles/sedan.glb",
+                "h": 1.5,
+                "name": "Getaway Sedan",
+                "spd": 68.0,
+                "trq": 280.0,
+                "mass": 1000.0,
+            },
+            Vector3(-288.0, 0.0, -92.0),
+            35.0
+        )
+    for car in _drivable_cars:
+        if not is_instance_valid(car):
+            continue
+        car.mission_entity_id = "getaway_car"
+        if car.has_method("place_at"):
+            car.place_at(Vector3(-288.0, 0.0, -92.0), 35.0)
+        return car
+    return null
 
 
 func _build_systems() -> void :

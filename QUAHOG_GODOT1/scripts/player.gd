@@ -5,6 +5,9 @@ extends CharacterBody3D
 
 signal interactable_changed(prompt: String)
 signal interacted(entity_id: String)
+signal vehicle_entered(entity_id: String)
+signal wasted
+signal tutorial_action(action: String)
 signal weapon_changed(weapon_name: String, clip: int, reserve: int, melee: bool)
 signal driving_changed(driving: bool)
 signal shots_fired(at: Vector3)
@@ -76,6 +79,7 @@ var _traffic_cars: Array = []
 
 var wanted_system: Node = null
 var home_spawn: Vector3 = Vector3.ZERO
+var _tutorial_actions: Dictionary = {}
 
 
 func _ready() -> void :
@@ -205,9 +209,13 @@ func _setup_animation_tree() -> void :
 
 func set_move_input(dir: Vector2) -> void :
     _move_input = dir
+    if dir.length() > 0.1:
+        _emit_tutorial_action("move_look")
 
 func add_camera_look(delta: Vector2) -> void :
     _look_delta += delta
+    if delta.length() > 0.1:
+        _emit_tutorial_action("move_look")
 
 func set_sprint(active: bool) -> void :
     _sprint_held = active
@@ -228,6 +236,8 @@ func do_interact() -> void :
 
 func set_aim(active: bool) -> void :
     _aiming = active
+    if active:
+        _emit_tutorial_action("attack_aim")
 
 func set_crouch(active: bool) -> void :
     _crouching = active
@@ -329,6 +339,8 @@ func _scale_to_longest(model: Node3D, target: float) -> void :
 
 func set_fire_held(active: bool) -> void :
     _fire_held = active
+    if active:
+        _emit_tutorial_action("attack_aim")
     if active:
         do_fire()
 
@@ -489,6 +501,7 @@ func _die() -> void :
     if ConsequenceManager and ConsequenceManager.is_active():
         return
     dead = true
+    wasted.emit()
     if AudioManager:
         var snd: = load("res://assets/audio/sfx/player/player_player_wasted.mp3")
         if snd:
@@ -592,6 +605,10 @@ func enter_car(car: Node) -> void :
     if car.has_method("enter"):
         car.enter(self)
     driving_changed.emit(true)
+    var entity_id := "any_vehicle"
+    if "mission_entity_id" in car and not str(car.mission_entity_id).is_empty():
+        entity_id = str(car.mission_entity_id)
+    vehicle_entered.emit(entity_id)
 
 func exit_car() -> void :
     if not _driving or current_car == null:
@@ -642,10 +659,26 @@ func _unhandled_input(event: InputEvent) -> void :
 
     if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
         add_camera_look(Vector2( - event.relative.x, - event.relative.y))
+    if (
+        event.is_action_pressed("move_forward")
+        or event.is_action_pressed("move_back")
+        or event.is_action_pressed("move_left")
+        or event.is_action_pressed("move_right")
+    ):
+        _emit_tutorial_action("move_look")
+    if event.is_action_pressed("fire") or event.is_action_pressed("aim"):
+        _emit_tutorial_action("attack_aim")
     if event.is_action_pressed("jump"):
         do_jump()
     if event.is_action_pressed("interact"):
         do_interact()
+
+
+func _emit_tutorial_action(action: String) -> void:
+    if _tutorial_actions.has(action):
+        return
+    _tutorial_actions[action] = true
+    tutorial_action.emit(action)
 
 
 func _physics_process(delta: float) -> void :

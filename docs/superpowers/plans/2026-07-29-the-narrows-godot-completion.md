@@ -527,7 +527,7 @@
 
 - Produces: `EncounterDirector.start(encounter_id)`, `reset(encounter_id)`, `encounter_completed`; `DialogueRunner.start(conversation_id)`, `advance()`, `skip()`, `line_changed`, `conversation_completed`.
 
-- [ ] **Step 1: Encode the actual sequence**
+- [x] **Step 1: Encode the actual sequence**
 
   Required objectives:
 
@@ -540,11 +540,11 @@
   7. reach the safehouse;
   8. complete the safehouse dialogue and receive the reward.
 
-- [ ] **Step 2: Test the golden event path**
+- [x] **Step 2: Test the golden event path**
 
   The test must dispatch all eight beats, assert exact objective order, and confirm the reward is emitted once.
 
-- [ ] **Step 3: Test three failure paths**
+- [x] **Step 3: Test three failure paths**
 
   Cover:
 
@@ -554,7 +554,7 @@
 
   All restart at the checkpoint before the pier encounter with enemies, player health, assigned car, heat, and reward state reset.
 
-- [ ] **Step 4: Implement the encounter**
+- [x] **Step 4: Implement the encounter**
 
   Spawn a bounded, deterministic encounter:
 
@@ -564,11 +564,11 @@
   - reset removes surviving actors before spawning replacements;
   - combat completion emits only when all registered enemies are defeated.
 
-- [ ] **Step 5: Implement subtitle-first dialogue**
+- [x] **Step 5: Implement subtitle-first dialogue**
 
   Every line contains speaker, text, optional audio asset, and optional auto-advance duration. Missing audio must never block advance. Support keyboard, touch, and standard gamepad confirm/skip actions.
 
-- [ ] **Step 6: Make the tutorial contextual**
+- [x] **Step 6: Make the tutorial contextual**
 
   Show one action at a time using the current input device:
 
@@ -586,7 +586,7 @@
 
   Verify new game, complete, fail/restart, quit/reload, and continue paths on desktop keyboard and mobile touch.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
   ```bash
   git add QUAHOG_GODOT1/data/missions/off_the_boat.json QUAHOG_GODOT1/data/dialogue QUAHOG_GODOT1/scripts/missions QUAHOG_GODOT1/scripts/dialogue QUAHOG_GODOT1/scripts/game_world.gd QUAHOG_GODOT1/scripts/ui/hud.gd QUAHOG_GODOT1/scripts/player.gd QUAHOG_GODOT1/tests/test_off_the_boat.gd

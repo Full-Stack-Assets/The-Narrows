@@ -16,19 +16,39 @@
       "checkpoint": true
     },
     {
+      "id": "interact_deacon",
+      "type": "interact",
+      "text": "Talk to Deacon",
+      "target": "deacon"
+    },
+    {
       "id": "reach_fish_pier",
       "type": "reach",
       "text": "Reach the fish pier",
       "target": "fish_pier",
       "position": [-310.0, 0.0, -88.0],
-      "radius": 12.0
+      "radius": 12.0,
+      "checkpoint": true
     },
     {
-      "id": "steal_escape_car",
+      "id": "pier_ambush",
+      "type": "defeat_encounter",
+      "text": "Survive the pier ambush",
+      "encounter": "pier_ambush",
+      "boundary_radius": 42.0,
+      "boundary_timeout": 15.0
+    },
+    {
+      "id": "enter_getaway_car",
       "type": "enter_vehicle",
-      "text": "Steal a car",
-      "entity": "any_vehicle",
-      "checkpoint": true
+      "text": "Take the assigned getaway car",
+      "entity": "getaway_car"
+    },
+    {
+      "id": "lose_police_heat",
+      "type": "lose_heat",
+      "text": "Lose the police heat",
+      "max_heat": 0
     },
     {
       "id": "reach_safehouse",
@@ -37,6 +57,12 @@
       "target": "opener_safehouse",
       "position": [-240.0, 0.0, -130.0],
       "radius": 14.0
+    },
+    {
+      "id": "safehouse_dialogue",
+      "type": "dialogue",
+      "text": "Talk to Sully inside",
+      "dialogue": "safehouse_wrap"
     }
   ]
 }

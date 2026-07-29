@@ -4,6 +4,7 @@ extends Node3D
 
 
 @export var interact_prompt: String = "Get a job"
+@export var mission_entity_id: String = ""
 
 var job_manager: Node = null
 
