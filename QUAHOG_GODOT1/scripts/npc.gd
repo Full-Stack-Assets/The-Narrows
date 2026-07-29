@@ -1,5 +1,13 @@
 extends CharacterBody3D
 
+enum PedestrianState {
+    IDLE,
+    WALK,
+    FLEE,
+    COWER,
+    CONVERSE,
+    VEHICLE_DODGE,
+}
 
 @export var walk_speed: float = 1.5
 @export var gravity: float = 20.0
@@ -24,6 +32,10 @@ var _idle_timer: float = 0.0
 var _has_target: bool = false
 var _flee_timer: float = 0.0
 var _flee_dir: Vector3 = Vector3.ZERO
+var _state: PedestrianState = PedestrianState.IDLE
+var _state_timer: float = 0.0
+var _behavior_timer: float = 0.0
+var _dodge_dir: Vector3 = Vector3.ZERO
 
 
 # Called when the player fires nearby: bolt away from the shot for a few seconds.
@@ -36,6 +48,20 @@ func panic(from: Vector3) -> void :
         away = Vector3(randf() - 0.5, 0.0, randf() - 0.5)
     _flee_dir = away.normalized()
     _flee_timer = randf_range(2.5, 4.5)
+    if global_position.distance_to(from) < 9.0:
+        _set_state(PedestrianState.COWER, 1.0)
+    else:
+        _set_state(PedestrianState.FLEE, _flee_timer)
+
+
+func state_name() -> String:
+    return PedestrianState.keys()[_state].to_lower()
+
+
+func begin_conversation(duration: float = 2.6) -> void:
+    if _state in [PedestrianState.FLEE, PedestrianState.COWER, PedestrianState.VEHICLE_DODGE]:
+        return
+    _set_state(PedestrianState.CONVERSE, duration)
 
 
 func setup(p_model: String, p_lib: String, p_waypoints: PackedVector3Array) -> void :
@@ -45,6 +71,7 @@ func setup(p_model: String, p_lib: String, p_waypoints: PackedVector3Array) -> v
 
 
 func _ready() -> void :
+    add_to_group("civic_pedestrian")
     collision_layer = 4
     collision_mask = 1
 
@@ -131,11 +158,75 @@ func _respawn_near_player() -> void :
     for _i in range(12):
         var cand: Vector3 = waypoints[randi() % waypoints.size()]
         var d: float = here.distance_to(cand)
-        if d > 40.0 and d < 160.0:
+        if d > 40.0 and d < 160.0 and not _is_position_visible(cand):
             global_position = Vector3(cand.x, 0.6, cand.z)
             velocity = Vector3.ZERO
             _pick_target()
             return
+
+
+func _is_position_visible(position: Vector3) -> bool:
+    var camera := get_viewport().get_camera_3d()
+    return camera != null and camera.is_position_in_frustum(position + Vector3.UP)
+
+
+func _set_state(next: PedestrianState, duration: float = 0.0) -> void:
+    _state = next
+    _state_timer = maxf(duration, 0.0)
+
+
+func _behavior_interval() -> float:
+    var quality: int = GameManager.graphics_quality if GameManager else 1
+    var quality_rate: float = [0.34, 0.2, 0.12][clampi(quality, 0, 2)]
+    if player == null or not is_instance_valid(player):
+        return quality_rate * 2.0
+    var distance := global_position.distance_to(player.global_position)
+    return quality_rate * clampf(distance / 35.0, 1.0, 4.0)
+
+
+func _vehicle_dodge_direction() -> Vector3:
+    for vehicle in get_tree().get_nodes_in_group("traffic_vehicle"):
+        if not is_instance_valid(vehicle) or not vehicle is Node3D:
+            continue
+        var away: Vector3 = global_position - (vehicle as Node3D).global_position
+        away.y = 0.0
+        if away.length() > 7.0:
+            continue
+        var vehicle_velocity: Vector3 = vehicle.velocity if "velocity" in vehicle else Vector3.ZERO
+        if vehicle_velocity.length() < 1.5:
+            continue
+        var side := Vector3(-vehicle_velocity.z, 0.0, vehicle_velocity.x).normalized()
+        if side.dot(away) < 0.0:
+            side = -side
+        return side
+    return Vector3.ZERO
+
+
+func _consider_social_behavior() -> void:
+    if _state != PedestrianState.IDLE or randf() > 0.08:
+        return
+    for other in get_tree().get_nodes_in_group("civic_pedestrian"):
+        if other == self or not is_instance_valid(other) or not other is Node3D:
+            continue
+        if global_position.distance_to((other as Node3D).global_position) <= 3.0:
+            begin_conversation()
+            if other.has_method("begin_conversation"):
+                other.begin_conversation()
+            return
+
+
+func _update_behavior(delta: float) -> void:
+    _behavior_timer -= delta
+    if _behavior_timer > 0.0:
+        return
+    _behavior_timer = _behavior_interval()
+    if _state not in [PedestrianState.FLEE, PedestrianState.COWER]:
+        var dodge := _vehicle_dodge_direction()
+        if dodge != Vector3.ZERO:
+            _dodge_dir = dodge
+            _set_state(PedestrianState.VEHICLE_DODGE, 0.8)
+            return
+    _consider_social_behavior()
 
 
 func _physics_process(delta: float) -> void :
@@ -148,19 +239,41 @@ func _physics_process(delta: float) -> void :
     else:
         velocity.y = 0.0
 
+    _update_behavior(delta)
+    _state_timer = maxf(0.0, _state_timer - delta)
+
     var moving: = false
-    if _flee_timer > 0.0:
-        _flee_timer -= delta
+    if _state == PedestrianState.COWER:
+        velocity.x = move_toward(velocity.x, 0.0, 14.0 * delta)
+        velocity.z = move_toward(velocity.z, 0.0, 14.0 * delta)
+        if _state_timer <= 0.0:
+            _set_state(PedestrianState.FLEE, _flee_timer)
+    elif _state == PedestrianState.FLEE:
+        _flee_timer = maxf(0.0, _flee_timer - delta)
         velocity.x = _flee_dir.x * RUN_SPEED
         velocity.z = _flee_dir.z * RUN_SPEED
         if mesh_root:
             mesh_root.rotation.y = lerp_angle(mesh_root.rotation.y, atan2( - _flee_dir.x, - _flee_dir.z), 10.0 * delta)
         moving = true
-        move_and_slide()
-        if _playback:
-            _playback.travel("walk")
-        return
-    if _idle_timer > 0.0:
+        if _flee_timer <= 0.0:
+            _idle_timer = randf_range(1.0, 2.5)
+            _set_state(PedestrianState.IDLE)
+    elif _state == PedestrianState.VEHICLE_DODGE:
+        velocity.x = _dodge_dir.x * RUN_SPEED
+        velocity.z = _dodge_dir.z * RUN_SPEED
+        if mesh_root:
+            mesh_root.rotation.y = lerp_angle(mesh_root.rotation.y, atan2( - _dodge_dir.x, - _dodge_dir.z), 12.0 * delta)
+        moving = true
+        if _state_timer <= 0.0:
+            _set_state(PedestrianState.WALK)
+    elif _state == PedestrianState.CONVERSE:
+        velocity.x = move_toward(velocity.x, 0.0, 10.0 * delta)
+        velocity.z = move_toward(velocity.z, 0.0, 10.0 * delta)
+        if _state_timer <= 0.0:
+            _idle_timer = randf_range(0.5, 1.5)
+            _set_state(PedestrianState.IDLE)
+    elif _idle_timer > 0.0:
+        _set_state(PedestrianState.IDLE)
         _idle_timer -= delta
         velocity.x = move_toward(velocity.x, 0.0, 10.0 * delta)
         velocity.z = move_toward(velocity.z, 0.0, 10.0 * delta)
@@ -171,6 +284,7 @@ func _physics_process(delta: float) -> void :
             _idle_timer = randf_range(1.5, 4.0)
             _pick_target()
         else:
+            _set_state(PedestrianState.WALK)
             var dir: = to_target.normalized()
             velocity.x = dir.x * walk_speed
             velocity.z = dir.z * walk_speed
@@ -178,6 +292,7 @@ func _physics_process(delta: float) -> void :
             moving = true
     else:
         _pick_target()
+        _set_state(PedestrianState.WALK if _has_target else PedestrianState.IDLE)
 
     move_and_slide()
 

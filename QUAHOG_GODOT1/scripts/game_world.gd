@@ -1082,7 +1082,9 @@ func _spawn_npcs() -> void :
         ["res://assets/characters/pedestrian_male/pedestrian_male.glb", "res://assets/characters/pedestrian_male/pedestrian_male_animations.tres"], 
         ["res://assets/characters/pedestrian_female/pedestrian_female.glb", "res://assets/characters/pedestrian_female/pedestrian_female_animations.tres"], 
     ]
-    for i in _city.npc_spawns.size():
+    var wanted_pedestrians: int = GameManager.pedestrian_count() if GameManager else _city.npc_spawns.size()
+    var pedestrian_count := mini(wanted_pedestrians, _city.npc_spawns.size())
+    for i in pedestrian_count:
         var npc: = CharacterBody3D.new()
         npc.set_script(NPC_SCRIPT)
         var ped = peds[i % peds.size()]

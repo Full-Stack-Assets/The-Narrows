@@ -5,6 +5,7 @@ class_name Police
 
 
 
+const PoliceStateRuntime = preload("res://scripts/ai/police_state.gd")
 const MODEL: = "res://assets/characters/cop/cop.glb"
 const ANIMS: = "res://assets/characters/cop/cop_animations.tres"
 
@@ -27,6 +28,10 @@ var _playback: AnimationNodeStateMachinePlayback
 var _arrest_cooldown: float = 0.0
 var _hit_timer: float = 0.0
 var _fire_cooldown: float = 0.0
+var _state_runtime := PoliceStateRuntime.new()
+var _disengage_timer: float = 0.0
+
+const SIGHT_RANGE: float = 58.0
 
 
 func setup(p_target: Node3D, p_wanted: Node) -> void :
@@ -148,6 +153,35 @@ func _shoot_at_player() -> void :
             VFX.spawn_impact(hit.position, 0.3)
 
 
+func pursuit_state() -> int:
+    return _state_runtime.state
+
+
+func last_known_position() -> Vector3:
+    return _state_runtime.last_known_position
+
+
+func is_actively_seeing_player() -> bool:
+    return _state_runtime.is_actively_seen()
+
+
+func _can_see_target() -> bool:
+    if target == null or not is_instance_valid(target):
+        return false
+    var eye := global_position + Vector3(0.0, 1.45, 0.0)
+    var target_eye := target.global_position + Vector3(0.0, 1.1, 0.0)
+    if eye.distance_to(target_eye) > SIGHT_RANGE:
+        return false
+    var query := PhysicsRayQueryParameters3D.create(eye, target_eye)
+    query.collision_mask = 1 | 2
+    query.exclude = [get_rid()]
+    var hit := get_world_3d().direct_space_state.intersect_ray(query)
+    if hit.is_empty():
+        return true
+    var collider: Object = hit.get("collider")
+    return collider == target or (collider is Node and target.is_ancestor_of(collider))
+
+
 func _physics_process(delta: float) -> void :
     if not is_on_floor():
         velocity.y -= gravity * delta
@@ -166,23 +200,40 @@ func _physics_process(delta: float) -> void :
 
     var moving: = false
     if target and is_instance_valid(target):
-        var to_t: = target.global_position - global_position
+        var has_heat: bool = GameManager != null and GameManager.wanted_level > 0
+        var has_sight := _can_see_target()
+        var previous_state: int = _state_runtime.state
+        var state: int = _state_runtime.update(has_heat, has_sight, target.global_position, delta)
+        if state != previous_state and wanted_system and wanted_system.has_method("on_police_state_changed"):
+            wanted_system.on_police_state_changed(self, state, _state_runtime.last_known_position)
+
+        var destination: Vector3 = target.global_position
+        if state == PoliceStateRuntime.State.SEARCHING:
+            destination = _state_runtime.last_known_position
+        elif state == PoliceStateRuntime.State.DISENGAGING:
+            _disengage_timer += delta
+            destination = global_position + (global_position - target.global_position).normalized() * 8.0
+
+        var to_t: = destination - global_position
         to_t.y = 0.0
         var dist: = to_t.length()
-        if dist > 2.0:
-
+        if state == PoliceStateRuntime.State.DISENGAGING and _disengage_timer >= 2.0:
+            queue_free()
+        elif dist > 2.0:
             var dir: = to_t.normalized()
-            var approach_speed: float = run_speed if dist > FIRE_RANGE * 0.6 else run_speed * 0.4
+            var approach_speed: float = run_speed if state == PoliceStateRuntime.State.PURSUING else run_speed * 0.55
+            if state == PoliceStateRuntime.State.PURSUING and dist <= FIRE_RANGE * 0.6:
+                approach_speed = run_speed * 0.4
             velocity.x = dir.x * approach_speed
             velocity.z = dir.z * approach_speed
             mesh_root.rotation.y = lerp_angle(mesh_root.rotation.y, atan2( - dir.x, - dir.z), 9.0 * delta)
             moving = approach_speed > run_speed * 0.5
-            if dist <= FIRE_RANGE and _fire_cooldown <= 0.0:
+            if state == PoliceStateRuntime.State.PURSUING and has_sight and dist <= FIRE_RANGE and _fire_cooldown <= 0.0:
                 _shoot_at_player()
         else:
             velocity.x = move_toward(velocity.x, 0.0, 16.0 * delta)
             velocity.z = move_toward(velocity.z, 0.0, 16.0 * delta)
-            if _arrest_cooldown <= 0.0:
+            if state == PoliceStateRuntime.State.PURSUING and _arrest_cooldown <= 0.0:
                 _arrest_cooldown = 1.0
                 if wanted_system and wanted_system.has_method("on_player_caught"):
                     wanted_system.on_player_caught()

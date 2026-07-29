@@ -49,6 +49,8 @@ var _obj_active: bool = false
 var _obj_text: String = ""
 var _obj_target: Vector3 = Vector3.ZERO
 var _wanted_label: Label = null
+var _pursuit_label: Label = null
+var _pursuit_clear_timer: float = 0.0
 var _faction_label: Label = null
 var _ammo_label: Label = null
 var _health_bar: ProgressBar = null
@@ -148,6 +150,8 @@ func bind_systems(job_manager: Node, wanted_system: Node) -> void :
     _wanted_system = wanted_system
     if _job_manager and _job_manager.has_signal("job_changed"):
         _job_manager.job_changed.connect(_on_job_changed)
+    if _wanted_system and _wanted_system.has_signal("pursuit_state_changed"):
+        _wanted_system.pursuit_state_changed.connect(_on_pursuit_state_changed)
     if _minimap and _minimap.has_method("bind"):
         _minimap.bind(_player, _job_manager, _wanted_system)
     if _big_map and _big_map.has_method("bind"):
@@ -207,6 +211,17 @@ func _build_gameplay_panels() -> void :
     _wanted_label.custom_minimum_size = Vector2(236, 40)
     _wanted_label.visible = false
 
+    _pursuit_label = Label.new()
+    _pursuit_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+    _pursuit_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+    _pursuit_label.add_theme_constant_override("outline_size", 6)
+    _apply_font(_pursuit_label, 22, Color(1.0, 0.36, 0.25))
+    _root.add_child(_pursuit_label)
+    _pursuit_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+    _pursuit_label.position = Vector2(-260, 132)
+    _pursuit_label.custom_minimum_size = Vector2(236, 34)
+    _pursuit_label.visible = false
+
     _faction_label = Label.new()
     _faction_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
     _apply_font(_faction_label, 34, Color(1.0, 0.45, 0.42))
@@ -214,7 +229,7 @@ func _build_gameplay_panels() -> void :
     _faction_label.add_theme_constant_override("outline_size", 5)
     _root.add_child(_faction_label)
     _faction_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-    _faction_label.position = Vector2(-260, 132)
+    _faction_label.position = Vector2(-260, 166)
     _faction_label.custom_minimum_size = Vector2(236, 40)
     _faction_label.visible = false
 
@@ -337,6 +352,21 @@ func _on_wanted_changed(level: int) -> void :
     _wanted_label.text = "★".repeat(level)
 
 
+func _on_pursuit_state_changed(label: String, _last_known: Vector3) -> void:
+    if _pursuit_label == null:
+        return
+    _pursuit_label.text = label
+    _pursuit_label.visible = label != ""
+    _pursuit_clear_timer = 2.8 if label == "ESCAPED" else 0.0
+    match label:
+        "SPOTTED":
+            _pursuit_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2))
+        "SEARCHING":
+            _pursuit_label.add_theme_color_override("font_color", Color(1.0, 0.76, 0.24))
+        "ESCAPED":
+            _pursuit_label.add_theme_color_override("font_color", Color(0.4, 0.92, 0.78))
+
+
 func _on_faction_changed(level: int) -> void :
     if _faction_label == null:
         return
@@ -417,6 +447,10 @@ func _set_objective(active: bool, text: String, target: Vector3) -> void :
 
 func _process(_delta: float) -> void :
     _update_debug(_delta)
+    if _pursuit_clear_timer > 0.0:
+        _pursuit_clear_timer = maxf(0.0, _pursuit_clear_timer - _delta)
+        if _pursuit_clear_timer <= 0.0 and _pursuit_label:
+            _pursuit_label.visible = false
     # World clock + weather readout.
     if _clock_label:
         var gm: = get_node_or_null("/root/GameManager")

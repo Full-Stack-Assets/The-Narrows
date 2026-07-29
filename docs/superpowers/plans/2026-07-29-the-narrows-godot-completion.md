@@ -814,7 +814,7 @@
 
 - Produces police states `UNAWARE`, `PURSUING`, `SEARCHING`, `DISENGAGING`.
 
-- [ ] **Step 1: Test pursuit state transitions**
+- [x] **Step 1: Test pursuit state transitions**
 
   Assert:
 
@@ -825,19 +825,19 @@
   - heat does not decay while actively seen;
   - backup count is capped by wanted tier and quality profile.
 
-- [ ] **Step 2: Integrate readable police behavior**
+- [x] **Step 2: Integrate readable police behavior**
 
   Show SPOTTED, SEARCHING, and ESCAPED HUD states and the last-known search area on minimap.
 
-- [ ] **Step 3: Improve traffic**
+- [x] **Step 3: Improve traffic**
 
   Traffic must stop at lights, yield to blockers/player, avoid spawning in view, and recover from a stalled route without teleporting visibly.
 
-- [ ] **Step 4: Improve pedestrian reactions**
+- [x] **Step 4: Improve pedestrian reactions**
 
   Add idle, walk, flee, cower, converse, and vehicle-dodge states. Scale density/behavior update rate by distance and quality profile.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
   ```bash
   godot --headless --path QUAHOG_GODOT1 --script res://tests/test_runner.gd

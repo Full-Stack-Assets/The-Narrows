@@ -32,6 +32,13 @@ var _yaw: float = 0.0
 var _light_meshes: Array[MeshInstance3D] = []
 var stop_timer: float = 0.0
 var carjacked: bool = false
+var _stall_timer: float = 0.0
+var _last_progress_position: Vector3 = Vector3.ZERO
+var _replanned_for_stall: bool = false
+
+const BLOCKER_LOOKAHEAD: float = 8.0
+const STALL_REPLAN_TIME: float = 3.0
+const STALL_RELOCATE_TIME: float = 7.0
 
 
 func setup(p_path: String, p_height: float, p_speed: float, p_waypoints: PackedVector3Array) -> void :
@@ -43,6 +50,7 @@ func setup(p_path: String, p_height: float, p_speed: float, p_waypoints: PackedV
 
 
 func _ready() -> void :
+    add_to_group("traffic_vehicle")
     collision_layer = 4
     collision_mask = 1
 
@@ -69,6 +77,7 @@ func _ready() -> void :
             _add_running_lights(model)
 
     _pick_target()
+    _last_progress_position = global_position
 
 
 func _add_running_lights(model: Node3D) -> void :
@@ -139,15 +148,70 @@ func _pick_target() -> void :
 func _respawn_near_player() -> void :
     if player == null or not is_instance_valid(player) or waypoints.size() == 0:
         return
+    if _is_position_visible(global_position):
+        _pick_target()
+        return
     var here: = player.global_position
-    for _i in range(12):
+    for _i in range(18):
         var cand: Vector3 = waypoints[randi() % waypoints.size()]
         var d: float = here.distance_to(cand)
-        if d > 60.0 and d < 200.0:
+        if d > 60.0 and d < 200.0 and not _is_position_visible(cand):
             global_position = Vector3(cand.x, 0.6, cand.z)
             velocity = Vector3.ZERO
+            _stall_timer = 0.0
+            _replanned_for_stall = false
+            _last_progress_position = global_position
             _pick_target()
             return
+
+
+func _is_position_visible(position: Vector3) -> bool:
+    var camera := get_viewport().get_camera_3d()
+    return camera != null and camera.is_position_in_frustum(position + Vector3.UP)
+
+
+func _at_red_light(direction: Vector3) -> bool:
+    var nearest_x := roundf(global_position.x / 80.0) * 80.0
+    var nearest_z := roundf(global_position.z / 80.0) * 80.0
+    var approaching_intersection := (
+        absf(global_position.x - nearest_x) < 8.0
+        and absf(global_position.z - nearest_z) < 8.0
+    )
+    if not approaching_intersection:
+        return false
+    var phase := int(Time.get_ticks_msec() / 6000) % 2
+    var east_west := absf(direction.x) > absf(direction.z)
+    return (east_west and phase == 0) or (not east_west and phase == 1)
+
+
+func _blocker_ahead(direction: Vector3) -> bool:
+    if direction.length_squared() < 0.01:
+        return false
+    if player and is_instance_valid(player):
+        var to_player := player.global_position - global_position
+        to_player.y = 0.0
+        if to_player.length() < 9.0 and direction.dot(to_player.normalized()) > 0.25:
+            return true
+    var origin := global_position + Vector3(0.0, 0.8, 0.0)
+    var query := PhysicsRayQueryParameters3D.create(origin, origin + direction * BLOCKER_LOOKAHEAD)
+    query.collision_mask = 1 | 2 | 4
+    query.exclude = [get_rid()]
+    return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+
+
+func _update_stall_recovery(delta: float, wants_motion: bool) -> void:
+    var moved := global_position.distance_to(_last_progress_position)
+    if not wants_motion or moved > 0.8:
+        _stall_timer = 0.0
+        _replanned_for_stall = false
+        _last_progress_position = global_position
+        return
+    _stall_timer += delta
+    if _stall_timer >= STALL_RELOCATE_TIME and not _is_position_visible(global_position):
+        _respawn_near_player()
+    elif _stall_timer >= STALL_REPLAN_TIME and not _replanned_for_stall:
+        _pick_target()
+        _replanned_for_stall = true
 
 
 func _physics_process(delta: float) -> void :
@@ -164,17 +228,22 @@ func _physics_process(delta: float) -> void :
     else:
         velocity.y = 0.0
 
+    var wants_motion := false
     if _has_target:
         var to_target: Vector3 = _target - global_position
         to_target.y = 0.0
         var dist: float = to_target.length()
-        if stop_timer > 0.0:
+        var dir := to_target / dist if dist > 0.001 else Vector3.ZERO
+        var red_light := _at_red_light(dir)
+        var blocked := _blocker_ahead(dir)
+        var yielding := red_light or blocked
+        wants_motion = dist >= ARRIVE_DIST and stop_timer <= 0.0 and not red_light
+        if stop_timer > 0.0 or yielding:
             velocity.x = move_toward(velocity.x, 0.0, 12.0 * delta)
             velocity.z = move_toward(velocity.z, 0.0, 12.0 * delta)
         elif dist < ARRIVE_DIST:
             _pick_target()
         else:
-            var dir: Vector3 = to_target / dist
             velocity.x = dir.x * speed
             velocity.z = dir.z * speed
             var desired_yaw: float = atan2(dir.x, dir.z)
@@ -186,3 +255,4 @@ func _physics_process(delta: float) -> void :
         velocity.z = move_toward(velocity.z, 0.0, 10.0 * delta)
 
     move_and_slide()
+    _update_stall_recovery(delta, wants_motion)

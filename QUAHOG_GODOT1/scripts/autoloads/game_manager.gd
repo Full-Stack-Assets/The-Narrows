@@ -89,6 +89,10 @@ func traffic_car_count() -> int:
     return [8, 12, 16][graphics_quality]
 
 
+func pedestrian_count() -> int:
+    return [10, 18, 30][graphics_quality]
+
+
 func stream_tile_budget() -> int:
     return [2, 5, 12][graphics_quality]
 
