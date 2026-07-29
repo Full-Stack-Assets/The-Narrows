@@ -443,7 +443,7 @@
   MissionRuntime.restart_checkpoint() -> void
   ```
 
-- [ ] **Step 1: Define supported objective types**
+- [x] **Step 1: Define supported objective types**
 
   Use:
 
@@ -461,7 +461,7 @@
 
   Every objective has a unique `id`, visible text, completion predicate data, and optional checkpoint flag.
 
-- [ ] **Step 2: Write failing transition tests**
+- [x] **Step 2: Write failing transition tests**
 
   Cover:
 
@@ -473,7 +473,7 @@
   - a completed mission ignores later events;
   - malformed definitions are rejected with a named error.
 
-- [ ] **Step 3: Implement data parsing and validation**
+- [x] **Step 3: Implement data parsing and validation**
 
   Reject definitions with:
 
@@ -484,11 +484,11 @@
   - non-positive reach radius or survive duration;
   - negative rewards.
 
-- [ ] **Step 4: Implement the pure runtime**
+- [x] **Step 4: Implement the pure runtime**
 
   The runtime updates progress only from `MissionEvent`. It must not read player position every frame or directly write saves/cash.
 
-- [ ] **Step 5: Adapt `story_mission.gd`**
+- [x] **Step 5: Adapt `story_mission.gd`**
 
   Reduce `story_mission.gd` to:
 
@@ -497,7 +497,7 @@
   - apply emitted reward/save/weather effects;
   - expose current title/objective/marker to the HUD.
 
-- [ ] **Step 6: Verify and commit**
+- [x] **Step 6: Verify and commit**
 
   ```bash
   godot --headless --path QUAHOG_GODOT1 --script res://tests/test_runner.gd

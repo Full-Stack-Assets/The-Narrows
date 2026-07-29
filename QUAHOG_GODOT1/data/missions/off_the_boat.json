@@ -1,0 +1,42 @@
+{
+  "id": "off_the_boat",
+  "title": "Off the Boat",
+  "reward": 150,
+  "effects": {
+    "opener_complete": true
+  },
+  "objectives": [
+    {
+      "id": "reach_bethel",
+      "type": "reach",
+      "text": "Go to Seamen's Bethel",
+      "target": "seamens_bethel",
+      "position": [-272.0, 0.0, -106.0],
+      "radius": 10.0,
+      "checkpoint": true
+    },
+    {
+      "id": "reach_fish_pier",
+      "type": "reach",
+      "text": "Reach the fish pier",
+      "target": "fish_pier",
+      "position": [-310.0, 0.0, -88.0],
+      "radius": 12.0
+    },
+    {
+      "id": "steal_escape_car",
+      "type": "enter_vehicle",
+      "text": "Steal a car",
+      "entity": "any_vehicle",
+      "checkpoint": true
+    },
+    {
+      "id": "reach_safehouse",
+      "type": "reach",
+      "text": "Reach the safehouse",
+      "target": "opener_safehouse",
+      "position": [-240.0, 0.0, -130.0],
+      "radius": 14.0
+    }
+  ]
+}

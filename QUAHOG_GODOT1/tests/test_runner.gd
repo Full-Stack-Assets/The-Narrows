@@ -4,6 +4,7 @@ const SUITES: Array[Script] = [
 	preload("res://tests/test_smoke.gd"),
 	preload("res://tests/test_build_info.gd"),
 	preload("res://tests/test_startup_manifest.gd"),
+	preload("res://tests/test_mission_runtime.gd"),
 ]
 
 var assertions: int = 0

@@ -4,6 +4,7 @@ extends CharacterBody3D
 
 
 signal interactable_changed(prompt: String)
+signal interacted(entity_id: String)
 signal weapon_changed(weapon_name: String, clip: int, reserve: int, melee: bool)
 signal driving_changed(driving: bool)
 signal shots_fired(at: Vector3)
@@ -220,6 +221,10 @@ func do_jump() -> void :
 func do_interact() -> void :
     if _current_interactable and is_instance_valid(_current_interactable) and _current_interactable.has_method("interact"):
         _current_interactable.interact(self)
+        var entity_id := str(_current_interactable.name)
+        if "mission_entity_id" in _current_interactable:
+            entity_id = str(_current_interactable.mission_entity_id)
+        interacted.emit(entity_id)
 
 func set_aim(active: bool) -> void :
     _aiming = active
