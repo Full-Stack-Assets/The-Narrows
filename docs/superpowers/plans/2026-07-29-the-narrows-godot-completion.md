@@ -149,7 +149,7 @@
 
 - Produces: `tests/test_runner.gd::assert_true`, `assert_eq`, and exit code `0/1`; `scripts/verify.sh` becomes the single local/CI verification entry point.
 
-- [ ] **Step 1: Write a failing smoke suite**
+- [x] **Step 1: Write a failing smoke suite**
 
   `tests/test_smoke.gd`:
 
@@ -167,7 +167,7 @@
       )
   ```
 
-- [ ] **Step 2: Implement the test runner**
+- [x] **Step 2: Implement the test runner**
 
   `tests/test_runner.gd` extends `SceneTree`, loads a fixed suite list, records assertion failures, prints a summary, and calls `quit(1)` when any assertion fails.
 
@@ -179,7 +179,7 @@
   ]
   ```
 
-- [ ] **Step 3: Run the test and record the current result**
+- [x] **Step 3: Run the test and record the current result**
 
   ```bash
   godot --headless --path QUAHOG_GODOT1 \
@@ -188,7 +188,7 @@
 
   Expected: the runner executes four named assertions and exits `0`.
 
-- [ ] **Step 4: Stop ignoring import failures**
+- [x] **Step 4: Stop ignoring import failures**
 
   Remove `|| true` from the import command in `build_web.sh`. Make the script accept:
 
@@ -204,7 +204,7 @@
 
   The build must stop on download, import, version, template, or export failure.
 
-- [ ] **Step 5: Create the verification entry point**
+- [x] **Step 5: Create the verification entry point**
 
   `scripts/verify.sh` must run, in order:
 
@@ -216,7 +216,7 @@
 
   It must also fail when stderr contains `SCRIPT ERROR`, `Parse Error`, or `Failed to load`.
 
-- [ ] **Step 6: Add Godot CI**
+- [x] **Step 6: Add Godot CI**
 
   `.github/workflows/godot-ci.yml` must:
 
@@ -226,7 +226,7 @@
   - upload `QUAHOG_GODOT1/build/web/` only after success;
   - never publish from pull requests.
 
-- [ ] **Step 7: Verify and commit**
+- [x] **Step 7: Verify and commit**
 
   ```bash
   cd QUAHOG_GODOT1
