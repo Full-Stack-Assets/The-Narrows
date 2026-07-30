@@ -115,6 +115,15 @@ func _ready() -> void :
     camera.fov = 62.0
     spring_arm.add_child(camera)
     camera.make_current()
+    # A restrained camera-side fill keeps the protagonist readable against wet
+    # asphalt and midnight streets without flattening the authored world light.
+    var character_fill := OmniLight3D.new()
+    character_fill.name = "CharacterFill"
+    character_fill.light_color = Color(0.52, 0.64, 0.78)
+    character_fill.light_energy = 0.72
+    character_fill.omni_range = 9.0
+    character_fill.shadow_enabled = false
+    camera.add_child(character_fill)
 
 
     mesh_root = Node3D.new()
@@ -166,6 +175,18 @@ func _load_character() -> void :
         var first: = meshes[0] as MeshInstance3D
         if first and not ModelUtils.has_vertex_normals(first):
             ModelUtils.generate_normals_for_all(model)
+    for mesh_node in meshes:
+        var mesh_instance := mesh_node as MeshInstance3D
+        var source := mesh_instance.get_active_material(0) as StandardMaterial3D
+        if source == null:
+            continue
+        var visible := source.duplicate() as StandardMaterial3D
+        visible.albedo_color = Color(1.28, 1.28, 1.28, 1.0)
+        visible.emission_enabled = true
+        visible.emission = Color(0.34, 0.39, 0.48)
+        visible.emission_texture = source.albedo_texture
+        visible.emission_energy_multiplier = 0.26
+        mesh_instance.material_override = visible
 
     anim_player = AnimationPlayer.new()
     anim_player.name = "AnimationPlayer"

@@ -7,8 +7,8 @@ const DAY_LENGTH: float = 600.0  # matches game_world.gd day cycle
 
 const BUSINESSES: Array = [
 	{"id": "anvil", "name": "The Anvil Garage", "blurb": "chop shop", "pos": Vector3(-320.0, 0.0, -60.0), "cost": 500, "per_day": 220},
-	{"id": "quohog", "name": "Quohog Republic", "blurb": "dockside bar", "pos": Vector3(-240.0, 0.0, -122.0), "cost": 800, "per_day": 320},
-	{"id": "linq", "name": "Linguiça Linq", "blurb": "all-night diner", "pos": Vector3(-300.0, 0.0, -92.0), "cost": 650, "per_day": 260},
+	{"id": "quohog", "name": "Quohog Republic", "blurb": "dockside bar", "pos": Vector3(-220.0, 0.0, -130.0), "cost": 800, "per_day": 320},
+	{"id": "linq", "name": "Linguiça Linq", "blurb": "all-night diner", "pos": Vector3(-300.0, 0.0, -72.0), "cost": 650, "per_day": 260},
 	{"id": "marealta", "name": "Maré Alta Records", "blurb": "record shop", "pos": Vector3(-262.0, 0.0, -60.0), "cost": 700, "per_day": 280},
 	{"id": "whalingcab", "name": "Whaling City Cab", "blurb": "taxi depot", "pos": Vector3(-220.0, 0.0, -176.0), "cost": 900, "per_day": 360},
 	{"id": "longisland", "name": "Off the Hook Bar and Grill", "blurb": "Long Island waterfront bar & marina", "pos": Vector3(6092.0, 0.0, -4485.0), "cost": 1800, "per_day": 600},

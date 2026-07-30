@@ -69,6 +69,10 @@ var _new_game_dialog: ConfirmationDialog = null
 # street). Lets you jump straight into any corner of the South Coast.
 const SPAWN_PRESETS: Array = [
     {"name": "Downtown New Bedford", "pos": Vector3(-219, 1.5, 107)},
+    {"name": "Seamen's Bethel", "pos": Vector3(-272, 1.5, -72)},
+    {"name": "Fish Pier", "pos": Vector3(-310, 1.5, -70)},
+    {"name": "Opening Safehouse", "pos": Vector3(-240, 1.5, -116)},
+    {"name": "Linguiça Linq Diner", "pos": Vector3(-300, 1.5, -58)},
     {"name": "Fort Taber", "pos": Vector3(1495, 1.5, 4560)},
     {"name": "Fall River (City Hall)", "pos": Vector3(-19475, 1.5, -7216)},
     {"name": "Battleship Cove", "pos": Vector3(-20180, 1.5, -7790)},

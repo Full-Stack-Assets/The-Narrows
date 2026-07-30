@@ -3,6 +3,7 @@ extends Node3D
 # Buyable business fronts — gold rings downtown, green when owned; rest heals + bleeds heat.
 
 const RADIUS: float = 7.0
+const VISUAL_RADIUS: float = 2.6
 
 var _rings: Array[MeshInstance3D] = []
 var _resting_index: int = -1
@@ -21,16 +22,17 @@ func _build_fronts() -> void:
 		var b: Dictionary = BusinessManager.BUSINESSES[i]
 		var pos: Vector3 = b["pos"]
 		var root: = Node3D.new()
+		root.name = str(b["id"]).to_pascal_case()
 		root.position = pos
 		add_child(root)
 
 		var ring: = MeshInstance3D.new()
+		ring.name = "GroundRing"
 		var torus: = TorusMesh.new()
-		torus.inner_radius = RADIUS - 0.6
-		torus.outer_radius = RADIUS
+		torus.inner_radius = VISUAL_RADIUS - 0.26
+		torus.outer_radius = VISUAL_RADIUS
 		ring.mesh = torus
-		ring.rotation.x = PI / 2.0
-		ring.position.y = 0.15
+		ring.position.y = 0.11
 		var mat: = StandardMaterial3D.new()
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -41,9 +43,9 @@ func _build_fronts() -> void:
 
 		var pole: = MeshInstance3D.new()
 		var box: = BoxMesh.new()
-		box.size = Vector3(0.2, 6.0, 0.2)
+		box.size = Vector3(0.12, 1.3, 0.12)
 		pole.mesh = box
-		pole.position = Vector3(0.0, 3.2, 0.0)
+		pole.position = Vector3(0.0, 0.7, 0.0)
 		var pole_mat: = StandardMaterial3D.new()
 		pole_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		pole_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -55,9 +57,11 @@ func _build_fronts() -> void:
 		lbl.text = str(b["name"])
 		lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		lbl.modulate = Color(1.0, 1.0, 1.0)
-		lbl.font_size = 36
-		lbl.pixel_size = 0.022
-		lbl.position = Vector3(0.0, 6.6, 0.0)
+		lbl.font_size = 32
+		lbl.pixel_size = 0.014
+		lbl.position = Vector3(0.0, 3.35, 0.0)
+		lbl.outline_modulate = Color(0.04, 0.05, 0.06)
+		lbl.outline_size = 7
 		root.add_child(lbl)
 
 	_update_ring_colors()

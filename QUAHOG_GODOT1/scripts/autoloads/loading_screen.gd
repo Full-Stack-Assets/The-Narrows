@@ -93,7 +93,6 @@ const PRELOAD_PATHS: PackedStringArray = [
     "res://assets/ui/cover.webp", 
     "res://assets/ui/cover_sm.webp", 
     "res://assets/ui/loading_bar_accent.tres", 
-    "res://assets/ui/loading_screen.png", 
     "res://assets/ui/panel_dialog.png", 
     "res://assets/ui/panel_dialog.tres", 
     "res://assets/ui/panel_hud.png", 
@@ -101,7 +100,6 @@ const PRELOAD_PATHS: PackedStringArray = [
     "res://assets/ui/theme.tres", 
     "res://assets/ui/title_poster.webp", 
     "res://assets/ui/title_poster_sm.webp", 
-    "res://assets/ui/wordmark_title.png", 
 
     "res://assets/3d_vfx/shared/texture/cracks_01.png", 
     "res://assets/3d_vfx/shared/texture/cracks_emission_01.png", 
@@ -375,9 +373,9 @@ func _build_ui() -> void :
     bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 
-    if ResourceLoader.exists("res://assets/ui/loading_screen.png"):
+    if ResourceLoader.exists("res://assets/ui/title_poster.webp"):
         var img: = TextureRect.new()
-        img.texture = load("res://assets/ui/loading_screen.png")
+        img.texture = load("res://assets/ui/title_poster.webp")
         img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
         img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
         _root.add_child(img)
@@ -390,21 +388,21 @@ func _build_ui() -> void :
     vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 
-
-    if ResourceLoader.exists("res://assets/ui/wordmark_title.png"):
-        var wm: = TextureRect.new()
-        wm.texture = load("res://assets/ui/wordmark_title.png")
-        wm.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-        wm.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-        _root.add_child(wm)
-        wm.anchor_left = 0.5
-        wm.anchor_right = 0.5
-        wm.anchor_top = 0.0
-        wm.anchor_bottom = 0.0
-        wm.offset_left = -450
-        wm.offset_right = 450
-        wm.offset_top = 80
-        wm.offset_bottom = 380
+    var title := Label.new()
+    title.text = "THE NARROWS"
+    title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    title.add_theme_font_size_override("font_size", 88)
+    title.add_theme_color_override("font_color", Color(0.98, 0.96, 0.9))
+    title.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.04, 0.95))
+    title.add_theme_constant_override("outline_size", 8)
+    if ResourceLoader.exists("res://assets/fonts/noto_serif.ttf"):
+        title.add_theme_font_override("font", load("res://assets/fonts/noto_serif.ttf"))
+    _root.add_child(title)
+    title.anchor_left = 0.0
+    title.anchor_right = 1.0
+    title.anchor_top = 0.0
+    title.offset_top = 72
+    title.offset_bottom = 190
 
 
 

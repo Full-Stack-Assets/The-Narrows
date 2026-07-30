@@ -31,6 +31,7 @@ class BuildScriptTests(unittest.TestCase):
         self.assertTrue(verify_script.stat().st_mode & 0o111)
         contents = verify_script.read_text(encoding="utf-8")
         self.assertIn('rm -r -- "$PROJECT_ROOT/build/web"', contents)
+        self.assertIn("check_export_manifest.py", contents)
 
     def test_ci_runs_the_strict_gate(self) -> None:
         workflow = REPO_ROOT / ".github" / "workflows" / "godot-ci.yml"
@@ -58,6 +59,33 @@ class BuildScriptTests(unittest.TestCase):
         self.assertNotIn('await _vfx_warmup()', loading)
         self.assertIn('StartupMetrics.mark("world_interactive")', world)
         self.assertIn('call_deferred("_start_deferred_city")', world)
+
+    def test_exported_runtime_and_loading_ui_ship_current_canon(self) -> None:
+        preset = (PROJECT_ROOT / "export_presets.cfg").read_text(encoding="utf-8")
+        loading = (PROJECT_ROOT / "scripts" / "autoloads" / "loading_screen.gd").read_text(
+            encoding="utf-8"
+        )
+        big_map = (PROJECT_ROOT / "scripts" / "ui" / "big_map.gd").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("scripts/**/*.gd", preset)
+        self.assertIn("scripts/*.gd", preset)
+        self.assertIn("scenes/*.tscn", preset)
+        self.assertIn("assets/ui/btn_plain.tres", preset)
+        self.assertIn("assets/environment/new_bedford/*.tres", preset)
+        self.assertIn("assets/props/containers/dumpster*", preset)
+        self.assertIn("assets/audio/ambient/ambient_coastal_city_coastal_city.mp3", preset)
+        self.assertIn("assets/ui/loading_screen.png", preset)
+        self.assertIn("assets/ui/wordmark_title.png", preset)
+        self.assertFalse((PROJECT_ROOT / "assets/ui/loading_screen.png").exists())
+        self.assertFalse((PROJECT_ROOT / "assets/ui/wordmark_title.png").exists())
+        self.assertIn("res://assets/ui/title_poster.webp", loading)
+        self.assertIn("THE NARROWS", loading)
+        self.assertNotIn("res://assets/ui/loading_screen.png", loading)
+        self.assertNotIn("res://assets/ui/wordmark_title.png", loading)
+        self.assertNotIn("MOUNT HOPE", big_map)
+        self.assertIn('startup_metrics.mark("play_pressed")', (PROJECT_ROOT / "scripts/ui/cheats_panel.gd").read_text())
 
 
 class AssetBudgetTests(unittest.TestCase):
@@ -103,6 +131,25 @@ class AssetBudgetTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         for budget_class in ["audio", "texture", "GLB", "menu", "payload"]:
             self.assertIn(budget_class, result.stdout)
+
+
+class ExportManifestTests(unittest.TestCase):
+    def test_manifest_rejects_missing_runtime_dependencies_and_retired_art(self) -> None:
+        sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
+        from check_export_manifest import FORBIDDEN_PATHS, REQUIRED_PATHS, check_pack
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            pack = Path(temp_dir) / "index.pck"
+            pack.write_bytes("\0".join(REQUIRED_PATHS).encode())
+            self.assertEqual(check_pack(pack), [])
+
+            pack.write_bytes(
+                ("\0".join(REQUIRED_PATHS[:-1]) + "\0" + FORBIDDEN_PATHS[0]).encode()
+            )
+            errors = check_pack(pack)
+
+        self.assertTrue(any("missing exported runtime dependency" in error for error in errors))
+        self.assertTrue(any("retired canon asset" in error for error in errors))
 
 
 class BuildInfoGeneratorTests(unittest.TestCase):

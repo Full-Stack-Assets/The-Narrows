@@ -1,6 +1,8 @@
 extends RefCounted
 class_name MapLoader
 
+const DistrictAuthoringScript := preload("res://scripts/world/district_authoring.gd")
+
 # Builds the real New Bedford map (the same data the web build ships) into Godot.
 # Data lives under res://data/map: slice-newbedford.json (roads), tiles/b_X_Y.json
 # (building footprints), overlays/*.json (land use). Coordinates are meters with
@@ -84,6 +86,8 @@ var buildings_built: int = 0
 var roads_built: int = 0
 var overlays_built: int = 0
 var named_places: Array = []  # [{name, pos}] from footprints that carry a name
+var district_manifest: Dictionary = {}
+var _authored_core_built: bool = false
 
 # Spawn scaffolding derived from the road network so game_world can drive the
 # real map the same way it drove the procedural CityBuilder (drop-in fields).
@@ -202,10 +206,32 @@ func build_region(parent: Node3D, center_tile: Vector2i = Vector2i.ZERO, radius_
     # stream per-tile in stream_buildings().
     _scan_slice(parent)
     _derive_spawns()
+    district_manifest = DistrictAuthoringScript.load_manifest()
     var core_center := Vector2(player_spawn.x, -player_spawn.z)
     var core_bbox := Rect2(core_center - Vector2(750.0, 750.0), Vector2(1500.0, 1500.0))
     _build_ground(parent, core_bbox)
     prime_core(player_spawn)
+
+
+func build_authored_core(parent: Node3D) -> Node3D:
+    if _authored_core_built:
+        return parent.get_node_or_null("NewBedfordAuthoredCore")
+    _authored_core_built = true
+    return DistrictAuthoringScript.build_core(parent, district_manifest)
+
+
+func populate_authored_dressing(parent: Node3D) -> Node3D:
+    var core := parent.get_node_or_null("NewBedfordAuthoredCore") as Node3D
+    if core == null:
+        return null
+    return DistrictAuthoringScript.populate_dressing(core, district_manifest, false)
+
+
+func populate_deferred_district_models(parent: Node3D) -> Node3D:
+    var core := parent.get_node_or_null("NewBedfordAuthoredCore") as Node3D
+    if core == null:
+        return null
+    return DistrictAuthoringScript.populate_deferred_models(core, district_manifest)
 
 
 func prime_core(center: Vector3) -> void:

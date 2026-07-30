@@ -16,10 +16,11 @@ run_godot() {
   local label="$1"
   shift
   local log_file="$VERIFY_TMP/${label}.log"
+  local engine_log="$VERIFY_TMP/${label}.engine.log"
   local command_status
 
   set +e
-  "$GODOT_BIN" "$@" 2>&1 | tee "$log_file"
+  "$GODOT_BIN" --log-file "$engine_log" "$@" 2>&1 | tee "$log_file"
   command_status=${PIPESTATUS[0]}
   set -e
 
@@ -51,6 +52,7 @@ mkdir -p "$PROJECT_ROOT/build/web"
 echo "Exporting Web build..."
 run_godot export --headless --quiet --path "$PROJECT_ROOT" \
   --export-release "Web" "build/web/index.html"
+python3 scripts/check_export_manifest.py --pack build/web/index.pck
 
 echo "Exporting deferred content pack..."
 run_godot deferred-export --headless --quiet --path "$PROJECT_ROOT" \

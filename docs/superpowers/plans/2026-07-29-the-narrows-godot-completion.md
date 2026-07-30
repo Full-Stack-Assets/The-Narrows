@@ -866,7 +866,7 @@
 
 - Produces a district manifest of hero overrides, façade profiles, prop zones, interior entrances, ambience zones, and mission anchors.
 
-- [ ] **Step 1: Define the district boundary and manifest**
+- [x] **Step 1: Define the district boundary and manifest**
 
   Limit authored work to the opening route around:
 
@@ -877,11 +877,11 @@
   - one diner/business;
   - connecting streets.
 
-- [ ] **Step 2: Test manifest integrity**
+- [x] **Step 2: Test manifest integrity**
 
   Assert unique IDs, valid asset paths, non-overlapping mission anchors, accessible entrances, and all coordinates within the district bounds.
 
-- [ ] **Step 3: Replace the most visible placeholders**
+- [x] **Step 3: Replace the most visible placeholders**
 
   Deliver:
 
@@ -893,15 +893,15 @@
   - three pedestrian and three vehicle visual variants;
   - harbor, street, and interior ambience zones.
 
-- [ ] **Step 4: Keep distant regions cheap**
+- [x] **Step 4: Keep distant regions cheap**
 
   Do not hand-author Fall River, Brockton, Cape Cod, or new corridors. They remain navigation/reference geography with existing streaming/LOD.
 
-- [ ] **Step 5: Verify the mission route**
+- [x] **Step 5: Verify the mission route**
 
   Capture reviewed desktop/mobile screenshots at Bethel, pier, safehouse, and business in clear, rain, dusk, and night conditions. Check collision and entry paths.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
   ```bash
   git add QUAHOG_GODOT1/data/world/new_bedford_core.json QUAHOG_GODOT1/scripts/world QUAHOG_GODOT1/assets/environment/new_bedford QUAHOG_GODOT1/tests/test_district_manifest.gd

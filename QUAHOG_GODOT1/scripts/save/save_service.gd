@@ -96,6 +96,9 @@ func clear_progress_preserve_settings() -> Error:
 	var fresh := SaveSchemaScript.blank()
 	if not existing.is_empty():
 		fresh["settings"] = existing["settings"].duplicate(true)
+		# Test-tool selections are explicitly presented as saved settings. Keep
+		# them across a fresh-game quick start so time/weather QA remains truthful.
+		fresh["cheats"] = existing["cheats"].duplicate(true)
 	return write(fresh)
 
 

@@ -51,6 +51,7 @@ static func run(t: SceneTree) -> void:
 	first["economy"]["cash"] = 111
 	first["settings"]["graphics"]["quality"] = 2
 	first["settings"]["accessibility"]["subtitles"] = false
+	first["cheats"] = {"time_phase": 0.75, "force_rain": 1}
 	first["mission"]["snapshot"] = {"mission_id": "off_the_boat", "objective_index": 3}
 	first["activities"] = {"new_bedford_race": {"best_time": 42.5}}
 	t.assert_eq(service.write(first), OK, "first save writes atomically")
@@ -76,4 +77,6 @@ static func run(t: SceneTree) -> void:
 	t.assert_eq(reset["economy"]["cash"], SaveSchema.STARTING_CASH, "New Game clears progress")
 	t.assert_eq(reset["settings"]["graphics"]["quality"], 2, "New Game preserves graphics settings")
 	t.assert_eq(reset["settings"]["accessibility"]["subtitles"], false, "New Game preserves accessibility settings")
+	t.assert_eq(reset["cheats"]["time_phase"], 0.75, "New Game preserves the saved time test setting")
+	t.assert_eq(reset["cheats"]["force_rain"], 1, "New Game preserves the saved weather test setting")
 	service.remove_test_files()

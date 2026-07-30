@@ -86,6 +86,7 @@ var _tex_concrete: Texture2D
 # the start and recurs each cycle.
 const DAY_LENGTH: float = 600.0     # seconds for a full day→night→day loop
 var _sun: DirectionalLight3D = null
+var _fill_light: DirectionalLight3D = null
 var _env: Environment = null
 var _day_phase: float = 0.0
 
@@ -124,6 +125,7 @@ var _activities: Array = []
 var _ambient_player: AudioStreamPlayer = null
 var _tod_life_t: float = 0.0
 var _day_phase_override_pending: bool = false
+var _diner_built: bool = false
 
 
 func get_wanted_system() -> Node:
@@ -168,9 +170,29 @@ func _ready() -> void :
     _tex_concrete = load("res://assets/textures/floors/concrete_sidewalk.png")
 
     _setup_environment()
+    _setup_weather()
+    _setup_gloria_flood()
     if GameManager:
         GameManager.graphics_quality_changed.connect(_apply_graphics_quality)
     _build_city()
+    if _city and _city.has_method("build_authored_core"):
+        var authored_core: Node3D = _city.build_authored_core(self)
+        if authored_core == null or not authored_core.has_node("SeamensBethel") or not authored_core.has_node("FishPier"):
+            push_error("New Bedford authored core failed its runtime landmark contract.")
+        else:
+            print(
+                "DISTRICT_CORE_READY bethel=%s pier=%s nodes=%d"
+                % [
+                    authored_core.get_node("SeamensBethel").global_position,
+                    authored_core.get_node("FishPier").global_position,
+                    authored_core.get_child_count(),
+                ]
+            )
+            var district_dressing: Node3D = _city.populate_authored_dressing(self)
+            if district_dressing == null:
+                push_error("New Bedford opening-route dressing failed its core runtime contract.")
+            else:
+                print("DISTRICT_CORE_DRESSING_READY nodes=%d" % district_dressing.get_child_count())
     if StartupMetrics:
         StartupMetrics.mark("core_map_ready")
     _apply_graphics_quality()
@@ -181,6 +203,7 @@ func _ready() -> void :
         _player.shots_fired.connect(_on_shots_fired)
     _build_hud()
     _build_systems()
+    _build_diner()
     if StartupMetrics:
         StartupMetrics.mark("world_interactive")
     call_deferred("_start_deferred_city")
@@ -190,6 +213,12 @@ func _start_deferred_city() -> void:
     await get_tree().process_frame
     if DeferredContent:
         await DeferredContent.ensure_loaded()
+    if _city and _city.has_method("populate_deferred_district_models"):
+        var dressing: Node3D = _city.populate_deferred_district_models(self)
+        if dressing == null:
+            push_error("New Bedford deferred model dressing failed its runtime contract.")
+        else:
+            print("DISTRICT_DEFERRED_MODELS_READY nodes=%d" % dressing.get_child_count())
     if _city and _city.has_method("stream_buildings"):
         _city.stream_buildings(_player.global_position)
     await get_tree().process_frame
@@ -217,12 +246,9 @@ func _start_deferred_city() -> void:
     _spawn_scrimshaw()
     _spawn_shops()
     _build_shop_menu()
-    _build_diner()
     NeonSignsScript.build(self)
     HeroHubsScript.build(self)
     _start_audio()
-    _setup_weather()
-    _setup_gloria_flood()
     if _city and _city.has_method("build_distant_world"):
         await get_tree().process_frame
         _city.build_distant_world(self)
@@ -415,6 +441,14 @@ func _setup_environment() -> void :
     sun.rotation_degrees = Vector3(-26.0, 52.0, 0.0)
     add_child(sun)
     _sun = sun
+    var fill := DirectionalLight3D.new()
+    fill.name = "SkyFill"
+    fill.light_color = Color(0.42, 0.56, 0.72)
+    fill.light_energy = 0.34
+    fill.shadow_enabled = false
+    fill.rotation_degrees = Vector3(-38.0, -128.0, 0.0)
+    add_child(fill)
+    _fill_light = fill
     _apply_day_night()
 
 
@@ -536,6 +570,8 @@ func _apply_day_night() -> void :
     _sun.light_color = warm.lerp(noon, daylight)
     # Much brighter floors so dusk/night reads clearly instead of near-black.
     _sun.light_energy = lerp(0.6, 1.4, daylight)
+    if _fill_light:
+        _fill_light.light_energy = lerp(0.44, 0.2, daylight)
     _env.ambient_light_energy = lerp(0.85, 1.15, daylight)
     _env.background_energy_multiplier = lerp(0.75, 1.1, daylight)
     # Lighter haze overall (it was crushing the foreground to black).
@@ -557,6 +593,12 @@ func _apply_day_night() -> void :
     for lamp in get_tree().get_nodes_in_group("mooring_light"):
         if lamp is OmniLight3D:
             (lamp as OmniLight3D).light_energy = lamp_e * 0.55
+    for lamp in get_tree().get_nodes_in_group("authored_lantern"):
+        if lamp is OmniLight3D:
+            (lamp as OmniLight3D).light_energy = lerp(1.35, 0.12, daylight)
+    for lamp in get_tree().get_nodes_in_group("authored_streetlight"):
+        if lamp is OmniLight3D:
+            (lamp as OmniLight3D).light_energy = lerp(2.2, 0.0, daylight)
     var neon_e: float = clampf(1.0 - daylight, 0.0, 1.0) * 1.6
     for lamp in get_tree().get_nodes_in_group("neon_light"):
         if lamp is OmniLight3D:
@@ -874,7 +916,7 @@ func _build_systems() -> void :
     var safehouse: = Node3D.new()
     safehouse.set_script(SafehouseZoneScript)
     add_child(safehouse)
-    safehouse.global_position = Vector3(-188.0, 0.0, -40.0)
+    safehouse.global_position = Vector3(-240.0, 0.0, -130.0)
 
     var fronts: = Node3D.new()
     fronts.set_script(BusinessFrontsScript)
@@ -1047,10 +1089,13 @@ func _build_shop_menu() -> void :
 
 
 func _build_diner() -> void :
+    if _diner_built:
+        return
+    _diner_built = true
     var diner: = Node3D.new()
     diner.set_script(DinerInteriorScript)
     add_child(diner)
-    diner.setup(Vector3(-300.0, 0.0, -92.0))
+    diner.setup(Vector3(-300.0, 0.0, -72.0))
     var diner_menu: = CanvasLayer.new()
     diner_menu.set_script(DinerMenuScript)
     add_child(diner_menu)

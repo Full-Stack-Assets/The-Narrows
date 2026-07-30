@@ -351,5 +351,5 @@ func _draw() -> void :
     draw_circle(cpx, 7.0, Color(1, 1, 1), false, 2.0)
 
     if _font:
-        draw_string(_font, Vector2(40, 64), "MOUNT HOPE — MAP", HORIZONTAL_ALIGNMENT_LEFT, -1, 40, Color(0.96, 0.86, 0.6))
+        draw_string(_font, Vector2(40, 64), "THE NARROWS — SOUTH COAST", HORIZONTAL_ALIGNMENT_LEFT, -1, 40, Color(0.96, 0.86, 0.6))
         draw_string(_font, Vector2(40, size.y - 36), "Tap a place name (gold = nearby · blue = area) to fast-travel · ✕ or M to close", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.82, 0.82, 0.82))

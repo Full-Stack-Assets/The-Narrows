@@ -24,6 +24,10 @@ const BOOL_CHEATS: Array = [
 ]
 const SPAWN_PRESETS: Array = [
     {"name": "Downtown New Bedford", "pos": Vector3(-219, 1.5, 107)},
+    {"name": "Seamen's Bethel", "pos": Vector3(-272, 1.5, -72)},
+    {"name": "Fish Pier", "pos": Vector3(-310, 1.5, -70)},
+    {"name": "Opening Safehouse", "pos": Vector3(-240, 1.5, -116)},
+    {"name": "Linguiça Linq Diner", "pos": Vector3(-300, 1.5, -58)},
     {"name": "Fort Taber", "pos": Vector3(1495, 1.5, 4560)},
     {"name": "Fall River (City Hall)", "pos": Vector3(-19475, 1.5, -7216)},
     {"name": "Battleship Cove", "pos": Vector3(-20180, 1.5, -7790)},
@@ -102,7 +106,8 @@ func _text_button(text: String, cb: Callable) -> Button:
     if _font:
         b.add_theme_font_override("font", _font)
     b.add_theme_font_size_override("font_size", 26)
-    b.pressed.connect(cb)
+    if cb.is_valid():
+        b.pressed.connect(cb)
     return b
 
 
@@ -184,6 +189,9 @@ func _spawn(pos: Vector3) -> void :
             gm.reset_save()
         gm.player_spawn_override = pos
         gm.has_spawn_override = true
+    var startup_metrics := get_node_or_null("/root/StartupMetrics")
+    if startup_metrics:
+        startup_metrics.mark("play_pressed")
     get_tree().change_scene_to_file(PLAY_SCENE)
 
 

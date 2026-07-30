@@ -11,7 +11,6 @@ import zlib
 MIB = 1024 * 1024
 DEFAULT_MENU_ASSETS = (
     "assets/ui/title_poster.webp",
-    "assets/ui/wordmark_title.png",
     "assets/ui/theme.tres",
     "assets/fonts/noto_serif.ttf",
     "assets/audio/sfx/ui/ui_menu_click.mp3",
