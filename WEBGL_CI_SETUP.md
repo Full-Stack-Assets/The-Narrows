@@ -4,7 +4,7 @@ Goal: every push to `claude/extract-into-repo-b738b0` builds the Unity WebGL
 player on GitHub's servers and publishes it to the live URL automatically — no
 UBA, no zips, no manual steps.
 
-Live URL: **https://full-stack-assets.github.io/quahog/**
+Live URL: **https://fullstackassets.com/quahog/**
 
 The main workflow is:
 - `.github/workflows/deploy-webgl.yml` — the build + deploy pipeline.
