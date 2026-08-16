@@ -2,7 +2,7 @@ name: Build & Deploy WebGL
 
 # Builds the Unity WebGL player on GitHub's runners and publishes it to the
 # gh-pages branch, which GitHub Pages serves at:
-#   https://full-stack-assets.github.io/quahog/
+#   https://fullstackassets.com/quahog/
 #
 # Requires repo secrets (see WEBGL_CI_SETUP.md):
 #   UNITY_EMAIL, UNITY_PASSWORD, and ONE of:
