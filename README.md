@@ -1,54 +1,64 @@
 # The Narrows
 
-An original 3D open-world game set on the **real Massachusetts South Coast**
-(New Bedford, Fall River, Brockton, Cape Cod) — walk real streets and real
-landmarks, populated by original characters, with GTA-style walk/drive
-mechanics. *GTA: Vice City is only a tonal reference; this is original work.*
+*The Narrows — South Coast · Now* is an original open-world crime drama set on
+the real Massachusetts South Coast in the present day (2026). It uses real
+New Bedford and Fall River geography with original characters, factions,
+missions, and businesses.
 
-**The Narrows** — subtitle *South Coast · Now* (2026). Named for the Taunton River
-narrows between Fall River and Somerset; **Mount Hope Bay** remains in-world geography.
-*(Repo/dir names still use the legacy "QUAHOG" working title; see `plans/the-narrows.md`.)*
+“Mount Hope” and “Project QUAHOG” are retired working titles. Mount Hope Bay
+remains an in-world geographic name. See
+[`plans/the-narrows.md`](plans/the-narrows.md) and
+[`docs/product/source-of-truth.md`](docs/product/source-of-truth.md).
 
-## Engines — canonical vs. legacy
+## Product hierarchy
 
-The project has consolidated on a **single canonical engine**. Earlier Unity and
-Godot tracks (and a second, parallel web attempt in Unity) are kept as
-**reference only** — not actively developed. See [`ENGINES.md`](ENGINES.md) for
-the full reconciliation.
+| Track | Role |
+|---|---|
+| `QUAHOG_GODOT1/` | **Ship target** — Godot 4.6, GL Compatibility, Web/mobile |
+| `QUAHOG_Web/` | Behavior/content reference and independently deployed comparison build |
+| `MountHope_Unreal/` | Separate premium PC/console research track |
+| `QUAHOG_Unity/`, `QUAHOG_Godot/`, `QUAHOG_Unreal/` | Legacy/reference |
 
-### ✅ `QUAHOG_Web/` — canonical (active)
-The browser-playable game: **Three.js / React Three Fiber** + Rapier physics.
-Third-person walk, car enter/drive, collision, on the **real New Bedford
-waterfront** street grid + auto-extruded OSM building blockout, with ambient
-pedestrians and traffic. Buildable live and deployed.
-**Live:** https://projectsouthcoast.vercel.app · setup: [`QUAHOG_Web/README.md`](QUAHOG_Web/README.md)
+Only the Godot ship target may make completion claims for the main product.
+Web and Unreal status must be labeled with their track.
 
-### `MountHope_Unreal/` — PC/console vertical-slice track
-An Unreal Engine 5 scaffold for a premium single-player PC/console version:
-GTA-like open-world crime structure, photoreal South Coast art direction,
-heavy cinematic driving, missions, NPCs, economy, dialogue, and OSM-grounded
-map import notes. It is separate from the web runtime and requires a local
-Unreal editor install to compile and author assets.
+## Run and verify the ship target
 
-### Map data — `quahog-project-files/mapdata/`
-The canonical OpenStreetMap pipeline feeding the web game: real road/water/
-building geometry for New Bedford & Fall River → GeoJSON / PMTiles / OBJ and the
-slice blockout JSON. See [`quahog-project-files/mapdata/README.md`](quahog-project-files/mapdata/README.md).
+Install Godot 4.6 stable, then:
 
-### `quahog-project-files/`
-Design and pitch materials: the Game Design Document, Master Plan, pitch
-one-pager, and system-design PDFs.
+```bash
+cd QUAHOG_GODOT1
+godot --editor --path .
+```
 
-## Legacy / reference (not active)
+The strict verification entry point is introduced by the active completion
+plan:
 
-- `QUAHOG_Unreal/` — earlier UE 5.8 bootstrap; framework merged into `MountHope_Unreal/`. See [`QUAHOG_Unreal/LEGACY.md`](QUAHOG_Unreal/LEGACY.md).
-- `QUAHOG_Godot/` — earlier Godot (GDScript) port. See [`QUAHOG_Godot/LEGACY.md`](QUAHOG_Godot/LEGACY.md).
-- `QUAHOG_Unity/` — earlier Unity (C#) project, incl. a parallel Unity→WebGL slice. See [`QUAHOG_Unity/LEGACY.md`](QUAHOG_Unity/LEGACY.md).
-- `tools/csharp/`, `tools/mapgen/` — tooling for the Unity track (headless C# compile/test; a Unity-targeted OSM fetcher). Superseded for web by `quahog-project-files/mapdata/`.
-- `prototypes/Quahog3D.html` — standalone offline Three.js prototype.
+```bash
+cd QUAHOG_GODOT1
+GODOT_BIN=godot bash scripts/verify.sh
+```
 
----
+Current Godot Web deployment: <https://quahog.vercel.app/>
 
-**Unofficial fan parody / original work.** Not affiliated with, endorsed by, or
-connected to Rockstar Games or Take-Two Interactive. Map data ©
-OpenStreetMap contributors, ODbL.
+Reference web deployment: <https://projectsouthcoast.vercel.app/>
+
+Neither URL is considered current unless its displayed commit SHA matches the
+source SHA being evaluated.
+
+## Shared map and design data
+
+- `quahog-project-files/mapdata/` — OpenStreetMap extraction and slice pipeline.
+- `quahog-project-files/CHARACTERS_AND_MISSIONS.md` — current story canon.
+- `quahog-project-files/STYLE_GUIDE.md` — present-day Coastal Noir art direction.
+- `plans/mount-hope.md` — historical master checklist and running log, now
+  reconciled to The Narrows/Godot hierarchy.
+- `docs/superpowers/plans/2026-07-29-the-narrows-godot-completion.md` — active
+  completion plan.
+
+## Legal
+
+This is original work and is not affiliated with or endorsed by Rockstar Games
+or Take-Two Interactive. GTA titles are tonal/mechanical references only.
+Map data © OpenStreetMap contributors, ODbL. Ship fictionalized brands rather
+than real vehicle or weapon trademarks.

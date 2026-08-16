@@ -43,6 +43,11 @@ func _load_manifest() -> void :
         stations = data
 
 
+func reload_content() -> void:
+    stations.clear()
+    _load_manifest()
+
+
 func station_count() -> int:
     return stations.size()
 

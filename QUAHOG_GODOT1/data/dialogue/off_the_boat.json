@@ -1,0 +1,39 @@
+{
+  "conversations": [
+    {
+      "id": "deacon_intro",
+      "lines": [
+        {
+          "speaker": "Deacon",
+          "text": "Sully said you would come. The pier crew already knows your face.",
+          "auto_advance": 3.5
+        },
+        {
+          "speaker": "Deacon",
+          "text": "Keep your head down, find the marked car, and do not bring the heat home.",
+          "auto_advance": 4.0
+        }
+      ]
+    },
+    {
+      "id": "safehouse_wrap",
+      "lines": [
+        {
+          "speaker": "Sully",
+          "text": "You crossed the harbor with half the city looking for you. That takes nerve.",
+          "auto_advance": 4.0
+        },
+        {
+          "speaker": "Player",
+          "text": "It takes a place to sleep. We square?",
+          "auto_advance": 3.0
+        },
+        {
+          "speaker": "Sully",
+          "text": "For tonight. Welcome to the Narrows.",
+          "auto_advance": 3.0
+        }
+      ]
+    }
+  ]
+}

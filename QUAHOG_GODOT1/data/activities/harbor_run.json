@@ -1,0 +1,19 @@
+{
+  "id": "harbor_run",
+  "title": "Harbor Run",
+  "mode": "boat",
+  "time_limit": 180.0,
+  "reward": 500,
+  "heat_on_start": 1,
+  "heat_per_checkpoint": 1,
+  "start_position": [160.0, 1.0, -90.0],
+  "start_radius": 12.0,
+  "start_yaw": 0.0,
+  "checkpoints": [
+    {"id": "state_pier_channel", "position": [300.0, 1.0, -210.0], "radius": 24.0},
+    {"id": "fairhaven_turn", "position": [620.0, 1.0, -80.0], "radius": 24.0},
+    {"id": "outer_harbor", "position": [520.0, 1.0, 330.0], "radius": 24.0},
+    {"id": "hurricane_barrier", "position": [150.0, 1.0, 240.0], "radius": 24.0},
+    {"id": "finish", "position": [160.0, 1.0, -90.0], "radius": 24.0}
+  ]
+}

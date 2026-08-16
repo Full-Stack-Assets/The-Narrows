@@ -1,21 +1,31 @@
-# The Narrows — Master Plan & Source of Truth
+# The Narrows — Historical Master Checklist & Running Log
 
-> **Title:** The Narrows (*South Coast · Now*, 2026). Legacy working titles: Project QUAHOG, Mount Hope. See `plans/the-narrows.md`.
+> **Title:** The Narrows (*South Coast · Now*, 2026). Legacy working titles:
+> Project QUAHOG and Mount Hope. Product/engine authority now lives in
+> `docs/product/source-of-truth.md`; the execution backlog lives in
+> `docs/superpowers/plans/2026-07-29-the-narrows-godot-completion.md`.
 
-The one file to track everything. Update the **checklist** as work lands and append
-to the **running log** every working session. Keep it honest: only check a box when
-it's actually built, verified (the Godot project compiles), and shipped.
+This file preserves the broad feature inventory and historical running log.
+Update status only when the named track is built, verified, and shipped. Do not
+use a web-reference checkmark as evidence that the Godot ship target is done.
 
 - **Working title:** **The Narrows** (retired “Project QUAHOG” and “Mount Hope” as product name)
 - **Canonical engine (build target):** `QUAHOG_GODOT1/` — **Godot 4.6**, GL Compatibility (mobile/web export), pure GDScript. This is what we ship.
 - **Reference spec (port FROM here):** `QUAHOG_Web/` — Three.js / React Three Fiber + Rapier. The web build is the most complete realization of The Narrows; **Parts I–III below describe its feature set and are the target the Godot port recreates.** Live: https://projectsouthcoast.vercel.app
 - **Goal:** recreate the web game in Godot — the exact New Bedford map (buildings, roads, waterfront), the characters/heroes, vehicles, and the full GTA-style gameplay loop — as a faithful port, then carry it forward natively.
-- **Cadence:** months of daily iteration via the **Working loop** below. One coherent task per cycle; keep the Godot project compiling; restructure freely as the port’s reality dictates.
+- **Cadence:** execute the active completion plan one reviewable task at a time;
+  keep strict Godot import, tests, and export green.
 - **Design canon:** `quahog-project-files/CHARACTERS_AND_MISSIONS.md`, `GEMINI_BUILD_PROMPT.md`, `ROADMAP.md`.
 - **Verification:** headless compile — `godot --headless --path QUAHOG_GODOT1 --import` must report zero script/parse errors before shipping.
 
-Legend: `[x]` done & shipped **in Godot** · `[~]` partial/in progress in Godot · `[ ]` not started in Godot.
-> **Re-baselining note:** Parts I–III were authored against the **web** build and their boxes reflect *web* status. They are kept as the **target spec**. Live Godot port progress is tracked in **§G0 (current state)** and the **Recreation roadmap** immediately below; as each web feature is ported, mirror it into the relevant Part I–III box with a `(Godot)` note.
+Godot status legend: `[Gx]` verified and shipped · `[G~]` partial · `[G ]` not
+started. Web reference status: `[Wx]`, `[W~]`, `[W ]`. Historical unprefixed
+checkboxes are not authoritative until re-baselined against code, tests, and a
+deployment SHA.
+
+> **Re-baselining note:** Parts I–III were authored against the web build and
+> remain a reference inventory. Record Godot and web status separately; never
+> mirror one track’s checkmark into the other.
 
 ---
 
@@ -24,26 +34,23 @@ Legend: `[x]` done & shipped **in Godot** · `[~]` partial/in progress in Godot 
 Repeat this loop every working cycle. One task (or one small coherent batch) at a
 time; keep the build green; be honest about status.
 
-1. **READ** — open this file. Skim the checklist + the latest running-log entry.
-   Pick the **next task**: highest-priority unchecked `[ ]` (or resume a `[~]`),
-   respecting dependencies and any current user-chosen focus. Prefer order:
-   foundations → core systems → content → aesthetics/polish, unless redirected.
-2. **SCOPE** — restate the task + its acceptance criteria (use the task's intricate
-   spec/sub-bullets as the definition of done). Mark it `[~]` in the checklist.
-3. **BUILD** — implement it in `QUAHOG_Web/` (code) or `quahog-project-files/` /
-   `plans/` (data/docs). Keep changes focused on the task.
-4. **VERIFY** — run `npm run build` (tsc + vite) until clean. Sanity-check
-   behavior/intent. If shippable, deploy (push → Vercel) and confirm the
-   deployment is **READY**. Note: WebGL visuals can't be eyeballed here, so verify
-   build + logic and flag anything needing the user's eyes.
-5. **REVIEW** — self-review against the task's spec; check for regressions; confirm
-   no console/type errors. If only partly done, keep it `[~]` and note what's left.
-6. **CHECK OFF** — set the box to `[x]` (done & shipped) or `[~]` (partial).
-   Append a dated bullet to the **running log**: what changed + commit hash +
-   any blocker/follow-up.
-7. **COMMIT & PUSH** — commit on the feature branch, fast-forward `main`, push
-   (Vercel auto-deploys). Update task counts if helpful.
-8. **REPEAT** — go to step 1.
+1. **READ** — open the active completion plan, this historical inventory, and
+   the latest running-log entry. Select the next dependency-ready task.
+2. **SCOPE** — restate the task, files, tests, and acceptance criteria. Mark only
+   the active plan’s checkbox in progress.
+3. **BUILD** — implement in `QUAHOG_GODOT1/`; use `QUAHOG_Web/` only as a
+   behavior/content reference unless the task explicitly names a web fix.
+4. **VERIFY** — run `GODOT_BIN=godot bash QUAHOG_GODOT1/scripts/verify.sh`.
+   Import, automated tests, and release Web export must all pass.
+5. **REVIEW** — compare the result to the acceptance criteria and inspect the
+   affected desktop/mobile runtime paths. Record partial work honestly.
+6. **COMMIT** — commit the focused change on a feature branch and append the
+   commit hash, verification result, and follow-up to the running log.
+7. **PULL REQUEST** — push the feature branch, review it, and merge normally.
+   Do not fast-forward local work directly into `main`.
+8. **DEPLOY & PROVE** — verify the deployed build displays the merged commit SHA
+   and record the URL/date/verifier.
+9. **REPEAT** — return to the active completion plan.
 
 **Rules of the loop**
 - Never leave the build broken between cycles.
@@ -107,7 +114,9 @@ expanding outward from the New Bedford core along the real highway spine.
 
 ## 0. Foundations & ops
 - [x] Repo + branch workflow; Vercel project + git auto-deploy (`projectsouthcoast`)
-- [x] Engine reconciliation: R3F canonical; Unity/Godot marked legacy
+- [x] Historical June 21 engine reconciliation: R3F was selected at that time;
+  superseded by the June 26 Godot ship-target pivot and
+  `docs/product/source-of-truth.md`
 - [x] Game named **The Narrows** (formerly Mount Hope)
 - [x] Design docs: README, ROADMAP, Characters & Missions bible, Gemini build spec
 - [x] CI: typecheck/build check on PRs — `.github/workflows/web-ci.yml` runs `tsc && vite build` on PRs/pushes touching `QUAHOG_Web` (uses `npm install`; lockfile drifts from package.json — `@vercel/blob` missing from the lock)
@@ -193,7 +202,10 @@ expanding outward from the New Bedford core along the real highway spine.
 - [ ] Tide / “Gloria” flood level change
 
 ## 7. World props & set dressing
-- [~] Street furniture: lamp posts, benches, trash cans, hydrants, mailboxes, bus stops, phone booths (1986) — instanced lamp posts/benches/hydrants/mailboxes along road edges (Props.tsx); trash cans/bus stops/phone booths TODO
+- [~] Street furniture: lamp posts, benches, trash cans, hydrants, mailboxes,
+  bus stops, parking/payment kiosks — instanced lamp
+  posts/benches/hydrants/mailboxes along road edges in the web reference;
+  current-day bus stops and parking fixtures remain open in Godot
 - [~] Traffic lights + stop signs (functional + decorative) — decorative signal heads cycling R/G/A near the core (TrafficLights.tsx); functional stop-at-light + stop signs TODO
 - [ ] Power lines / utility poles, dumpsters, crates, pallets
 - [ ] Storefront awnings, signage, A-frame signs, window displays
@@ -342,7 +354,9 @@ expanding outward from the New Bedford core along the real highway spine.
 - [x] Notifications (mission, cash, busted/wasted), damage vignette + directional hit indicators — toast notifications (Toasts.tsx) + damage vignette; directional hit indicators TODO
 
 ## 22. UI aesthetics & menus
-- [~] **1986 retro UI** theme (fonts, colors, CRT/neon styling) — consistent kit — courier/neon palette across HUD, menus, title, toasts; CRT shader/full kit TODO
+- [~] **Present-day Coastal Noir UI** theme — consistent courier/neon palette
+  across HUD, menus, title, toasts; full responsive/accessibility kit remains
+  open
 - [~] Main menu (New/Continue/Load/Settings/Extras) with art + ambient scene — title/start screen over the live world with tips (StartMenu.tsx); New/Continue/Load split TODO
 - [~] Pause menu, mission screen, stats/progress screen — pause/**settings** overlay (resume, view, weather, effects, **shadows**, volume, reset) + **Stats overlay** (day/health/cash/wanted/fronts/scrimshaw/mission) + **Credits**; dedicated mission screen TODO
 - [~] Loading screens with art + tips/lore — title screen doubles as a loading screen with rotating tips (StartMenu.tsx); art TODO
@@ -784,4 +798,3 @@ headless game-world boot scan (0 script errors / leaks).
 - **Open (need a decision):** corridor slice port (RT18/I-195/Fall River — port the
   web build's pulled OSM region) · web first-load size (~200 MB, 58 MB radio MP3s;
   needs ffmpeg re-encode or asset trim) · gamepad/perf pass · mission chain.
-

@@ -1,0 +1,272 @@
+{
+  "id": "new_bedford_core",
+  "bounds": {
+    "min": [-350.0, -170.0],
+    "max": [-170.0, -30.0]
+  },
+  "hero_overrides": [
+    {
+      "id": "seamens_bethel",
+      "kind": "bethel",
+      "position": [-272.0, 0.0, -106.0],
+      "size": [16.0, 11.0, 22.0],
+      "facade_profile": "granite",
+      "entrance": [-272.0, 0.0, -94.0]
+    },
+    {
+      "id": "fish_pier",
+      "kind": "working_pier",
+      "position": [-310.0, 0.0, -88.0],
+      "size": [38.0, 1.0, 15.0],
+      "facade_profile": "brick",
+      "entrance": [-292.0, 0.0, -88.0]
+    }
+  ],
+  "facade_profiles": [
+    {
+      "id": "brick",
+      "asset": "res://assets/environment/new_bedford/brick.tres",
+      "color": [0.42, 0.18, 0.12, 1.0]
+    },
+    {
+      "id": "granite",
+      "asset": "res://assets/environment/new_bedford/granite.tres",
+      "color": [0.48, 0.5, 0.48, 1.0]
+    },
+    {
+      "id": "clapboard",
+      "asset": "res://assets/environment/new_bedford/clapboard.tres",
+      "color": [0.62, 0.67, 0.64, 1.0]
+    },
+    {
+      "id": "storefront",
+      "asset": "res://assets/environment/new_bedford/storefront.tres",
+      "color": [0.16, 0.24, 0.28, 1.0]
+    }
+  ],
+  "facade_placements": [
+    {
+      "id": "route_brick",
+      "profile": "brick",
+      "position": [-330.0, 0.0, -126.0],
+      "size": [18.0, 9.0, 10.0]
+    },
+    {
+      "id": "route_granite",
+      "profile": "granite",
+      "position": [-252.0, 0.0, -84.0],
+      "size": [15.0, 12.0, 11.0]
+    },
+    {
+      "id": "route_clapboard",
+      "profile": "clapboard",
+      "position": [-214.0, 0.0, -122.0],
+      "size": [13.0, 8.0, 11.0]
+    },
+    {
+      "id": "route_storefront",
+      "profile": "storefront",
+      "position": [-300.0, 0.0, -102.0],
+      "size": [12.0, 5.0, 8.0]
+    },
+    {
+      "id": "north_row_brick",
+      "profile": "brick",
+      "position": [-318.0, 0.0, -151.0],
+      "size": [18.0, 11.0, 10.0]
+    },
+    {
+      "id": "north_row_granite",
+      "profile": "granite",
+      "position": [-286.0, 0.0, -151.0],
+      "size": [16.0, 9.0, 10.0]
+    },
+    {
+      "id": "north_row_clapboard",
+      "profile": "clapboard",
+      "position": [-254.0, 0.0, -151.0],
+      "size": [14.0, 8.0, 10.0]
+    },
+    {
+      "id": "north_row_storefront",
+      "profile": "storefront",
+      "position": [-224.0, 0.0, -151.0],
+      "size": [16.0, 7.0, 10.0]
+    },
+    {
+      "id": "west_harbor_warehouse",
+      "profile": "brick",
+      "position": [-342.0, 0.0, -92.0],
+      "size": [12.0, 8.0, 20.0]
+    },
+    {
+      "id": "east_route_clapboard",
+      "profile": "clapboard",
+      "position": [-188.0, 0.0, -94.0],
+      "size": [14.0, 9.0, 16.0]
+    },
+    {
+      "id": "south_row_storefront",
+      "profile": "storefront",
+      "position": [-280.0, 0.0, -42.0],
+      "size": [18.0, 7.0, 9.0]
+    },
+    {
+      "id": "south_row_brick",
+      "profile": "brick",
+      "position": [-322.0, 0.0, -42.0],
+      "size": [16.0, 10.0, 9.0]
+    }
+  ],
+  "prop_zones": [
+    {
+      "id": "pier_working_waterfront",
+      "position": [-310.0, 0.0, -88.0],
+      "radius": 28.0,
+      "props": [
+        {
+          "id": "pier_dumpster",
+          "kind": "model",
+          "asset": "res://assets/props/containers/dumpster.glb",
+          "position": [-320.0, 0.0, -96.0],
+          "yaw": 90.0
+        },
+        {
+          "id": "pier_bench",
+          "kind": "model",
+          "asset": "res://assets/props/furniture/park_bench.glb",
+          "position": [-298.0, 0.0, -84.0],
+          "yaw": 0.0
+        },
+        {
+          "id": "pier_crates",
+          "kind": "crates",
+          "position": [-315.0, 0.0, -82.0]
+        },
+        {
+          "id": "pier_bollards",
+          "kind": "bollards",
+          "position": [-326.0, 0.0, -88.0]
+        }
+      ]
+    },
+    {
+      "id": "route_street_furniture",
+      "position": [-260.0, 0.0, -100.0],
+      "radius": 85.0,
+      "props": [
+        {
+          "id": "route_hydrant",
+          "kind": "model",
+          "asset": "res://assets/props/decorations/fire_hydrant.glb",
+          "position": [-260.0, 0.0, -98.0],
+          "yaw": 0.0
+        },
+        {
+          "id": "route_streetlight",
+          "kind": "model",
+          "asset": "res://assets/props/decorations/streetlight.glb",
+          "position": [-244.0, 0.0, -116.0],
+          "yaw": 0.0
+        },
+        {
+          "id": "route_crosswalk",
+          "kind": "crosswalk",
+          "position": [-277.0, 0.0, -100.0]
+        },
+        {
+          "id": "route_parking",
+          "kind": "parking",
+          "position": [-226.0, 0.0, -74.0]
+        },
+        {
+          "id": "route_sign",
+          "kind": "sign",
+          "position": [-286.0, 0.0, -110.0],
+          "label": "WATERFRONT"
+        }
+      ]
+    }
+  ],
+  "interior_entrances": [
+    {
+      "id": "safehouse_door",
+      "kind": "safehouse",
+      "position": [-240.0, 0.0, -130.0],
+      "radius": 2.4,
+      "approach_width": 3.0
+    },
+    {
+      "id": "diner_door",
+      "kind": "business",
+      "position": [-300.0, 0.0, -72.0],
+      "radius": 2.2,
+      "approach_width": 2.6
+    }
+  ],
+  "ambience_zones": [
+    {
+      "id": "harbor_ambience",
+      "kind": "harbor",
+      "position": [-310.0, 0.0, -88.0],
+      "radius": 42.0,
+      "asset": "res://assets/audio/ambient/ambient_coastal_city_coastal_city.mp3",
+      "volume_db": -13.0
+    },
+    {
+      "id": "street_ambience",
+      "kind": "street",
+      "position": [-260.0, 0.0, -104.0],
+      "radius": 55.0,
+      "asset": "res://assets/audio/ambient/ambient_coastal_city_coastal_city.mp3",
+      "volume_db": -18.0
+    },
+    {
+      "id": "interior_ambience",
+      "kind": "interior",
+      "position": [-240.0, 0.0, -130.0],
+      "radius": 10.0,
+      "asset": "res://assets/audio/ambient/ambient_coastal_city_coastal_city.mp3",
+      "volume_db": -24.0
+    }
+  ],
+  "mission_anchors": [
+    {
+      "id": "anchor_seamens_bethel",
+      "position": [-272.0, 0.0, -106.0],
+      "radius": 6.0
+    },
+    {
+      "id": "anchor_fish_pier",
+      "position": [-310.0, 0.0, -88.0],
+      "radius": 6.0
+    },
+    {
+      "id": "anchor_getaway_car",
+      "position": [-288.0, 0.0, -92.0],
+      "radius": 5.0
+    },
+    {
+      "id": "anchor_opener_safehouse",
+      "position": [-240.0, 0.0, -130.0],
+      "radius": 7.0
+    },
+    {
+      "id": "anchor_linguica_linq",
+      "position": [-300.0, 0.0, -72.0],
+      "radius": 5.0
+    }
+  ],
+  "visual_variants": {
+    "pedestrians": [
+      "res://assets/characters/pedestrian_male/pedestrian_male.glb",
+      "res://assets/characters/pedestrian_female/pedestrian_female.glb",
+      "res://assets/characters/mission_giver/mission_giver.glb"
+    ],
+    "vehicles": [
+      "res://assets/props/vehicles/sedan.glb",
+      "res://assets/props/vehicles/taxi.glb",
+      "res://assets/props/vehicles/suv.glb"
+    ]
+  }
+}

@@ -39,6 +39,14 @@ func _ready() -> void :
     _font = load("res://assets/fonts/noto_serif.ttf")
 
 
+func apply_layout(rect: Rect2) -> void:
+    set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+    position = rect.position
+    custom_minimum_size = rect.size
+    size = rect.size
+    queue_redraw()
+
+
 func _process(delta: float) -> void :
     _pulse = fmod(_pulse + delta * 3.0, TAU)
     queue_redraw()
@@ -149,6 +157,14 @@ func _draw() -> void :
         for cop in wanted_system.get_cops():
             if is_instance_valid(cop):
                 _draw_blip(cop.global_position, center, Color(0.95, 0.3, 0.3), 4.0)
+    if wanted_system and wanted_system.has_method("get_search_area"):
+        var search_area: Dictionary = wanted_system.get_search_area()
+        if not search_area.is_empty():
+            var search_position: Vector3 = search_area.get("position", Vector3.ZERO)
+            var search_radius: float = float(search_area.get("radius", 18.0)) * _scale
+            var search_px := _world_to_map(search_position, center)
+            draw_circle(search_px, search_radius, Color(1.0, 0.7, 0.2, 0.12))
+            draw_arc(search_px, search_radius, 0.0, TAU, 48, Color(1.0, 0.7, 0.2, 0.9), 2.0)
     if wanted_system and wanted_system.has_method("get_enforcers"):
         for goon in wanted_system.get_enforcers():
             if is_instance_valid(goon):

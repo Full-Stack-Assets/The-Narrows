@@ -93,7 +93,6 @@ const PRELOAD_PATHS: PackedStringArray = [
     "res://assets/ui/cover.webp", 
     "res://assets/ui/cover_sm.webp", 
     "res://assets/ui/loading_bar_accent.tres", 
-    "res://assets/ui/loading_screen.png", 
     "res://assets/ui/panel_dialog.png", 
     "res://assets/ui/panel_dialog.tres", 
     "res://assets/ui/panel_hud.png", 
@@ -101,7 +100,6 @@ const PRELOAD_PATHS: PackedStringArray = [
     "res://assets/ui/theme.tres", 
     "res://assets/ui/title_poster.webp", 
     "res://assets/ui/title_poster_sm.webp", 
-    "res://assets/ui/wordmark_title.png", 
 
     "res://assets/3d_vfx/shared/texture/cracks_01.png", 
     "res://assets/3d_vfx/shared/texture/cracks_emission_01.png", 
@@ -295,6 +293,19 @@ const PRELOAD_PATHS: PackedStringArray = [
     "res://assets/props/weapons/shotgun.glb", 
 ]
 
+const CORE_PRELOAD_PATHS: PackedStringArray = [
+    "res://scenes/game_world.tscn",
+    "res://scenes/player.tscn",
+]
+
+const PHASE_PROGRESS: Dictionary = {
+    "STARTING": 0.08,
+    "LOADING CORE MAP": 0.35,
+    "SPAWNING PLAYER": 0.62,
+    "STARTING CITY": 0.82,
+    "READY": 1.0,
+}
+
 
 
 
@@ -316,6 +327,8 @@ func _ready() -> void :
     process_mode = Node.PROCESS_MODE_ALWAYS
     visible = false
     _build_ui()
+    if StartupMetrics and not StartupMetrics.phase_marked.is_connected(_on_startup_phase_marked):
+        StartupMetrics.phase_marked.connect(_on_startup_phase_marked)
 
 
 
@@ -360,9 +373,9 @@ func _build_ui() -> void :
     bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 
-    if ResourceLoader.exists("res://assets/ui/loading_screen.png"):
+    if ResourceLoader.exists("res://assets/ui/title_poster.webp"):
         var img: = TextureRect.new()
-        img.texture = load("res://assets/ui/loading_screen.png")
+        img.texture = load("res://assets/ui/title_poster.webp")
         img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
         img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
         _root.add_child(img)
@@ -375,21 +388,21 @@ func _build_ui() -> void :
     vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 
-
-    if ResourceLoader.exists("res://assets/ui/wordmark_title.png"):
-        var wm: = TextureRect.new()
-        wm.texture = load("res://assets/ui/wordmark_title.png")
-        wm.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-        wm.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-        _root.add_child(wm)
-        wm.anchor_left = 0.5
-        wm.anchor_right = 0.5
-        wm.anchor_top = 0.0
-        wm.anchor_bottom = 0.0
-        wm.offset_left = -450
-        wm.offset_right = 450
-        wm.offset_top = 80
-        wm.offset_bottom = 380
+    var title := Label.new()
+    title.text = "THE NARROWS"
+    title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    title.add_theme_font_size_override("font_size", 88)
+    title.add_theme_color_override("font_color", Color(0.98, 0.96, 0.9))
+    title.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.04, 0.95))
+    title.add_theme_constant_override("outline_size", 8)
+    if ResourceLoader.exists("res://assets/fonts/noto_serif.ttf"):
+        title.add_theme_font_override("font", load("res://assets/fonts/noto_serif.ttf"))
+    _root.add_child(title)
+    title.anchor_left = 0.0
+    title.anchor_right = 1.0
+    title.anchor_top = 0.0
+    title.offset_top = 72
+    title.offset_bottom = 190
 
 
 
@@ -437,7 +450,7 @@ func _build_ui() -> void :
 
 func _show() -> void :
     visible = true
-    set_progress(0.0)
+    set_phase("STARTING")
 
 
 func _hide() -> void :
@@ -447,8 +460,24 @@ func _hide() -> void :
 func set_progress(p: float) -> void :
     if _progress:
         _progress.value = clamp(p, 0.0, 1.0)
+
+
+func set_phase(phase: String) -> void:
     if _status:
-        _status.text = "Loading... %d%%" % int(p * 100.0)
+        _status.text = phase
+    set_progress(float(PHASE_PROGRESS.get(phase, 0.0)))
+
+
+func _on_startup_phase_marked(name: String, _elapsed_from_boot_ms: int) -> void:
+    match name:
+        "play_pressed":
+            set_phase("LOADING CORE MAP")
+        "core_map_ready":
+            set_phase("SPAWNING PLAYER")
+        "player_ready":
+            set_phase("STARTING CITY")
+        "world_interactive":
+            set_phase("READY")
 
 
 
@@ -457,17 +486,15 @@ func preload_and_change_scene(scene_path: String, min_display: float = 1.5) -> v
     if _busy: return
     _busy = true
     _show()
-    var t0: = Time.get_ticks_msec()
-    await get_tree().process_frame
     await get_tree().process_frame
     if not _preloaded:
         await _run_preload_sequence()
         _preloaded = true
     await _change_scene_to(scene_path)
-    await _vfx_warmup()
-    var elapsed: = float(Time.get_ticks_msec() - t0) / 1000.0
-    if elapsed < min_display:
-        await get_tree().create_timer(min_display - elapsed).timeout
+    while StartupMetrics and StartupMetrics.elapsed_ms("play_pressed", "world_interactive") < 0:
+        await get_tree().process_frame
+    set_phase("READY")
+    await get_tree().process_frame
     _hide()
     _busy = false
 
@@ -507,14 +534,13 @@ func change_scene(scene_path: String, min_display: float = 0.6) -> void :
 
 
 func _run_preload_sequence() -> void :
-    var total: = PRELOAD_PATHS.size()
+    var total: = CORE_PRELOAD_PATHS.size()
     if total == 0:
         set_progress(0.92)
         return
     for i in total:
-        var path: = PRELOAD_PATHS[i]
+        var path: = CORE_PRELOAD_PATHS[i]
         if _cache.has(path) or not ResourceLoader.exists(path):
-            set_progress(float(i + 1) / float(total) * 0.92)
             await get_tree().process_frame
             continue
         var res: = load(path)
@@ -523,7 +549,6 @@ func _run_preload_sequence() -> void :
         else:
             push_warning("LoadingScreen preload failed: " + path)
 
-        set_progress(float(i + 1) / float(total) * 0.92)
         await get_tree().process_frame
 
 

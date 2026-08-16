@@ -1,340 +1,375 @@
 extends Node
 class_name StoryMission
 
-# Campaign driver: opener + Act I + Act II + Act III (Gloria finale).
-# Steps mirror the web mission chain (world x, z = -north).
-
 signal mission_changed(active: bool, text: String, target: Vector3)
 signal mission_completed(title: String)
+signal mission_failed(reason: String)
+signal subtitle_changed(speaker: String, text: String)
+signal tutorial_prompt_changed(text: String)
 
-const JobMarkerScript: = preload("res://scripts/world/job_marker.gd")
-
-const SAFEHOUSE: = Vector3(-188.0, 0.0, -40.0)
-const BETHEL: = Vector3(-272.0, 0.0, -106.0)
-const PIER: = Vector3(-310.0, 0.0, -88.0)
-const OPENER_SAFE: = Vector3(-240.0, 0.0, -130.0)
-const QUOHOG_REPUBLIC: = Vector3(-240.0, 0.0, -122.0)
-const ANVIL_GARAGE: = Vector3(-320.0, 0.0, -60.0)
-const LONG_ISLAND_BAR: = Vector3(6092.0, 0.0, -4485.0)
-const BRAGA_BRIDGE: = Vector3(-20372.0, 0.0, -7829.0)
-const BATTLESHIP_COVE: = Vector3(-20180.0, 0.0, -7882.0)
-const BORDEN_HOUSE: = Vector3(-19599.0, 0.0, -7080.0)
-const HERITAGE_MARINA: = Vector3(-10520.0, 0.0, -47420.0)
-const HYANNIS_COMPOUND: = Vector3(-8480.0, 0.0, -52100.0)
-const HURRICANE_BARRIER: = Vector3(860.0, 0.0, -2000.0)
-const DOWNTOWN_NB: = Vector3(-560.0, 0.0, -90.0)
-const CHAMPION_GYM: = Vector3(-8350.0, 0.0, -49620.0)
-
-const MISSIONS: Array = [
-    {
-        "title": "Off the Boat",
-        "steps": [
-            {"text": "Go to Seamen's Bethel", "pos": BETHEL, "radius": 10.0},
-            {"text": "Reach the fish pier", "pos": PIER, "radius": 12.0},
-            {"text": "Steal a car", "need_car": true},
-            {"text": "Reach the safehouse", "pos": OPENER_SAFE, "radius": 14.0, "need_car": true},
-        ],
-        "reward": 150,
-        "sets_opener": true,
-    },
-    {
-        "title": "Auction Rules",
-        "steps": [
-            {"text": "Grab a car — Sully's collectors are on the docks", "need_car": true},
-            {"text": "Lean on the collectors at the Quohog Republic", "pos": QUOHOG_REPUBLIC, "radius": 16.0, "need_car": true},
-            {"text": "Cool the car at Reggie's Anvil Garage", "pos": ANVIL_GARAGE, "radius": 14.0, "no_heat": true, "reward": 700},
-        ],
-        "reward": 0,
-    },
-    {
-        "title": "The Linguiça Run",
-        "steps": [
-            {"text": "Grab a car", "need_car": true},
-            {"text": "Pick up the package at Off the Hook (Long Island)", "pos": LONG_ISLAND_BAR, "radius": 18.0, "need_car": true},
-            {"text": "Run it downtown to the Quohog Republic", "pos": QUOHOG_REPUBLIC, "radius": 16.0, "reward": 900},
-        ],
-        "reward": 0,
-    },
-    {
-        "title": "Harbor Heat",
-        "steps": [
-            {"text": "Hit Sully's count house — grab a fast car", "need_car": true},
-            {"text": "Lose the cops, then go to ground at the safehouse", "pos": SAFEHOUSE, "radius": 12.0, "no_heat": true, "reward": 1200},
-        ],
-        "reward": 0,
-    },
-    {
-        "title": "Spindle City",
-        "steps": [
-            {"text": "Take I-195 west over the Braga Bridge", "pos": BRAGA_BRIDGE, "radius": 60.0, "need_car": true},
-            {"text": "Case Battleship Cove for Lady Borden's people", "pos": BATTLESHIP_COVE, "radius": 40.0, "reward": 1500},
-        ],
-        "reward": 0,
-    },
-    {
-        "title": "Acquitted",
-        "steps": [
-            {"text": "Meet the Lady's man at the Borden House on Second St", "pos": BORDEN_HOUSE, "radius": 18.0, "need_car": true},
-            {"text": "Run the ledger to Battleship Cove — lose the tail", "pos": BATTLESHIP_COVE, "radius": 40.0, "no_heat": true, "reward": 2000},
-        ],
-        "reward": 0,
-    },
-    {
-        "title": "The Undefeated",
-        "steps": [
-            {"text": "Meet Iron Mike at Champion City Gym — Brockton's waiting", "pos": CHAMPION_GYM, "radius": 38.0},
-            {"text": "Back the kid in the fixed fight — don't throw it", "pos": CHAMPION_GYM, "radius": 28.0, "no_heat": true, "reward": 1800},
-        ],
-        "reward": 0,
-    },
-    {
-        "title": "Heritage Marina",
-        "steps": [
-            {"text": "Drive to Chip Worthington's heritage marina on the Cape", "pos": HERITAGE_MARINA, "radius": 40.0, "need_car": true},
-            {"text": "Photograph the laundered hull numbers — get out clean", "pos": HERITAGE_MARINA, "radius": 28.0, "no_heat": true, "reward": 2500},
-        ],
-        "reward": 0,
-    },
-    {
-        "title": "Compound Interest",
-        "steps": [
-            {"text": "Roll up on the Fake Kennedys' Hyannis compound", "pos": HYANNIS_COMPOUND, "radius": 32.0, "need_car": true},
-            {"text": "Plant the bug in the guest house — ditch the tail", "pos": HYANNIS_COMPOUND, "radius": 22.0, "no_heat": true, "reward": 3000},
-        ],
-        "reward": 0,
-    },
-    {
-        "title": "Gloria",
-        "steps": [
-            {"text": "Gloria's coming ashore — grab wheels and head for high ground", "need_car": true, "gloria": "start"},
-            {"text": "Ride out the surge at the Hurricane Barrier", "pos": HURRICANE_BARRIER, "radius": 50.0, "need_car": true, "reward": 3500},
-            {"text": "Smuggle the ledger across flooded downtown", "pos": DOWNTOWN_NB, "radius": 55.0, "no_heat": true, "reward": 2000},
-        ],
-        "reward": 0,
-    },
-    {
-        "title": "Big Mamie",
-        "steps": [
-            {"text": "Storm's breaking — book it west over the Braga Bridge", "pos": BRAGA_BRIDGE, "radius": 55.0, "need_car": true},
-            {"text": "Take the deck of the USS Massachusetts — end this", "pos": BATTLESHIP_COVE, "radius": 35.0, "reward": 10000},
-        ],
-        "reward": 5000,
-    },
-]
+const DEFINITION_PATH := "res://data/missions/off_the_boat.json"
+const JobMarkerScript := preload("res://scripts/world/job_marker.gd")
+const MissionDefinitionScript := preload("res://scripts/missions/mission_definition.gd")
+const MissionEventScript := preload("res://scripts/missions/mission_event.gd")
+const MissionRuntimeScript := preload("res://scripts/missions/mission_runtime.gd")
+const EncounterDirectorScript := preload("res://scripts/missions/encounter_director.gd")
+const DialogueRunnerScript := preload("res://scripts/dialogue/dialogue_runner.gd")
 
 var player: Node3D = null
 var world: Node3D = null
+var runtime: MissionRuntime = null
+var definition: MissionDefinition = null
 var _marker: JobMarker = null
+var _survive_elapsed: float = 0.0
+var _encounter: EncounterDirector = null
+var _dialogue: DialogueRunner = null
+var _input_device: String = "keyboard"
+var _tutorial_seen: Dictionary = {}
+var _assigned_car: Node = null
 
 
-func setup(p_player: Node3D, p_world: Node3D) -> void :
-    player = p_player
-    world = p_world
+func setup(p_player: Node3D, p_world: Node3D) -> void:
+	player = p_player
+	world = p_world
+	_dialogue = DialogueRunnerScript.new()
+	add_child(_dialogue)
+	_dialogue.load_file("res://data/dialogue/off_the_boat.json")
+	_dialogue.line_changed.connect(_on_dialogue_line)
+	_dialogue.conversation_completed.connect(notify_dialogue_completed)
+	_encounter = EncounterDirectorScript.new()
+	add_child(_encounter)
+	_encounter.encounter_center = Vector3(-310.0, 0.0, -88.0)
+	_encounter.encounter_completed.connect(notify_encounter_defeated)
+	_encounter.encounter_failed.connect(_on_encounter_failed)
+	_connect_world_events()
 
 
-func try_start_opener() -> void :
-    try_resume_campaign()
+func try_start_opener() -> void:
+	if GameManager == null or GameManager.campaign_done:
+		return
+	var parsed := _load_definition(DEFINITION_PATH)
+	if not str(parsed.get("error", "")).is_empty():
+		push_error("Mission definition rejected: %s" % parsed["error"])
+		mission_changed.emit(false, "Mission unavailable", Vector3.ZERO)
+		return
+	definition = parsed["definition"]
+	runtime = MissionRuntimeScript.new()
+	runtime.objective_changed.connect(_on_objective_changed)
+	runtime.mission_completed.connect(_on_runtime_completed)
+	runtime.mission_failed.connect(_on_runtime_failed)
+	var saved_snapshot: Dictionary = GameManager.mission_snapshot.duplicate(true)
+	runtime.start(definition)
+	if (
+		not saved_snapshot.is_empty()
+		and str(saved_snapshot.get("mission_id", "")) == definition.id
+	):
+		runtime.restore(saved_snapshot)
+	elif GameManager.campaign_step > 0:
+		var saved := runtime.snapshot()
+		saved["objective_index"] = mini(GameManager.campaign_step, definition.objectives.size() - 1)
+		saved["objective_id"] = str(definition.objectives[int(saved["objective_index"])]["id"])
+		runtime.restore(saved)
+	GameManager.show_message("Off the Boat: head to Seamen's Bethel.")
+	_sync_objective()
 
 
-func try_resume_campaign() -> void :
-    if GameManager == null or GameManager.campaign_done:
-        return
-    var mi: int = GameManager.campaign_mi
-    if mi < 0:
-        mi = 0
-    if mi == 0 and GameManager.opener_complete:
-        mi = 1
-        GameManager.campaign_mi = mi
-        GameManager.campaign_step = 0
-    if mi >= MISSIONS.size():
-        GameManager.campaign_done = true
-        return
-    _begin_mission(mi)
+func try_resume_campaign() -> void:
+	try_start_opener()
 
 
 func has_active_mission() -> bool:
-    if GameManager == null or GameManager.campaign_done:
-        return false
-    var mi: int = GameManager.campaign_mi
-    return mi >= 0 and mi < MISSIONS.size()
-
-
-func get_objective_position() -> Vector3:
-    var step: Dictionary = _current_step()
-    if step.is_empty():
-        return Vector3.ZERO
-    if step.has("pos"):
-        return step["pos"]
-    return Vector3.ZERO
-
-
-func _current_step() -> Dictionary:
-    if not has_active_mission():
-        return {}
-    var mi: int = GameManager.campaign_mi
-    var si: int = GameManager.campaign_step
-    var steps: Array = MISSIONS[mi]["steps"]
-    if si < 0 or si >= steps.size():
-        return {}
-    return steps[si]
+	return runtime != null and not runtime.is_completed()
 
 
 func current_title() -> String:
-    var mi: int = GameManager.campaign_mi if GameManager else 0
-    if mi < 0 or mi >= MISSIONS.size():
-        return "Free roam"
-    return str(MISSIONS[mi]["title"])
+	return definition.title if definition else "Free roam"
 
 
-func _process(_delta: float) -> void :
-    if player == null or not is_instance_valid(player):
-        return
-    if not has_active_mission():
-        return
-    if _step_complete():
-        _advance_step()
+func current_objective_text() -> String:
+	return str(runtime.current_objective().get("text", "")) if runtime else ""
 
 
-func _step_complete() -> bool:
-    var step: Dictionary = _current_step()
-    if step.is_empty():
-        return false
-    if bool(step.get("need_car", false)):
-        if not ("_driving" in player and player._driving):
-            return false
-    if bool(step.get("no_heat", false)):
-        if GameManager and (GameManager.wanted_level >= 1 or GameManager.faction_level >= 1):
-            return false
-    if step.has("pos"):
-        var pos: Vector3 = step["pos"]
-        var radius: float = float(step.get("radius", 10.0))
-        if player.global_position.distance_to(pos) > radius:
-            if "_driving" in player and player._driving and player.current_car:
-                var car = player.current_car
-                if "vehicle_model" in car and car.vehicle_model:
-                    if car.vehicle_model.global_position.distance_to(pos) <= radius:
-                        return true
-            return false
-    return true
+func get_objective_position() -> Vector3:
+	if runtime == null:
+		return Vector3.ZERO
+	var raw_position: Variant = runtime.current_objective().get("position", [])
+	if raw_position is Array and raw_position.size() == 3:
+		return Vector3(float(raw_position[0]), float(raw_position[1]), float(raw_position[2]))
+	return Vector3.ZERO
 
 
-func _advance_step() -> void :
-    var mi: int = GameManager.campaign_mi
-    var step: Dictionary = _current_step()
-    var si: int = GameManager.campaign_step
-    # Opener: fish-pier ambush raises heat before the car-jack step.
-    if mi == 0 and si == 1:
-        GameManager.show_message("Ambush! Jack a car and get out of here.")
-        if world and world.has_method("get_wanted_system"):
-            var ws: Variant = world.get_wanted_system()
-            if ws and ws.has_method("add_heat"):
-                ws.add_heat(1)
-    var step_reward: int = int(step.get("reward", 0))
-    if step_reward > 0:
-        GameManager.add_cash(step_reward)
-        if AudioManager:
-            var snd: = load("res://assets/audio/sfx/pickup/pickup_cash_reward.mp3")
-            if snd:
-                AudioManager.play_sfx(snd, -2.0)
-        GameManager.show_message("+$%d" % step_reward)
-
-    GameManager.campaign_step += 1
-    var steps: Array = MISSIONS[mi]["steps"]
-    if GameManager.campaign_step >= steps.size():
-        _finish_mission(mi)
-        return
-    _sync_marker()
-    _emit()
-    _apply_step_weather(_current_step())
+func dispatch_event(event: MissionEvent) -> void:
+	if runtime:
+		runtime.dispatch(event)
 
 
-func _apply_step_weather(step: Dictionary) -> void :
-    if not step.has("gloria"):
-        return
-    if world == null or not world.has_method("set_gloria_storm"):
-        return
-    var mode: String = str(step["gloria"])
-    world.set_gloria_storm(mode == "start")
+func notify_encounter_defeated(encounter_id: String) -> void:
+	dispatch_event(MissionEventScript.create("defeat_encounter", encounter_id))
 
 
-func _finish_mission(mi: int) -> void :
-    var mission: Dictionary = MISSIONS[mi]
-    var title: String = str(mission["title"])
-    var reward: int = int(mission.get("reward", 0))
-    if bool(mission.get("sets_opener", false)):
-        GameManager.opener_complete = true
-    if reward > 0:
-        GameManager.add_cash(reward)
-    GameManager.record_mission_complete()
-    GameManager.save_game()
-    mission_completed.emit(title)
-    # Gloria storm ends once the hurricane mission wraps; finale runs in the clearing.
-    if mi == 9 and world and world.has_method("set_gloria_storm"):
-        world.set_gloria_storm(false)
-
-    if mi == 0:
-        GameManager.show_message("Safehouse reached. Welcome to the Narrows. +$%d" % maxi(reward, 150))
-    else:
-        GameManager.show_message("%s complete." % title)
-
-    GameManager.campaign_mi = mi + 1
-    GameManager.campaign_step = 0
-    if GameManager.campaign_mi >= MISSIONS.size():
-        GameManager.campaign_done = true
-        _clear_marker()
-        mission_changed.emit(false, "Campaign complete", Vector3.ZERO)
-        GameManager.show_message("Act III complete — the Narrows is yours, kid.")
-        return
-    if mi == 3:
-        GameManager.show_message("Act I wrapped — Fall River's next.")
-    elif mi == 5:
-        GameManager.show_message("Act II wrapped — Brockton's calling.")
-    elif mi == 6:
-        GameManager.show_message("Iron Mike's proud — the Cape's next.")
-    elif mi == 8:
-        GameManager.show_message("The Kennedys are handled — Gloria's on the horizon.")
-    var nxt: String = str(MISSIONS[GameManager.campaign_mi]["title"])
-    GameManager.show_message("Next job: %s" % nxt)
-    _begin_mission(GameManager.campaign_mi)
+func notify_dialogue_completed(dialogue_id: String) -> void:
+	subtitle_changed.emit("", "")
+	dispatch_event(MissionEventScript.create("dialogue", dialogue_id))
 
 
-func _begin_mission(mi: int) -> void :
-    GameManager.campaign_mi = mi
-    GameManager.campaign_step = 0
-    GameManager.save_game()
-    var title: String = str(MISSIONS[mi]["title"])
-    if mi == 0 and not GameManager.opener_complete:
-        GameManager.show_message("Off the Boat: head to Seamen's Bethel.")
-    else:
-        GameManager.show_message(title + " — " + str(MISSIONS[mi]["steps"][0]["text"]))
-    _sync_marker()
-    _emit()
-    _apply_step_weather(_current_step())
+func restart_checkpoint() -> void:
+	if runtime:
+		runtime.restart_checkpoint()
+		_sync_objective()
 
 
-func _sync_marker() -> void :
-    var step: Dictionary = _current_step()
-    if step.is_empty() or not step.has("pos"):
-        _clear_marker()
-        return
-    _spawn_marker(step["pos"], Color(0.95, 0.78, 0.25))
+func set_input_device(device: String) -> void:
+	if device == _input_device:
+		return
+	_input_device = device
+	_emit_tutorial_prompt()
 
 
-func _spawn_marker(pos: Vector3, color: Color) -> void :
-    if _marker and is_instance_valid(_marker):
-        _marker.queue_free()
-    _marker = JobMarkerScript.new()
-    world.add_child(_marker)
-    _marker.setup(pos, 5.0, color, player)
+func mark_tutorial_action(action: String) -> void:
+	_tutorial_seen[action] = true
+	_emit_tutorial_prompt()
 
 
-func _clear_marker() -> void :
-    if _marker and is_instance_valid(_marker):
-        _marker.queue_free()
-    _marker = null
+func snapshot() -> Dictionary:
+	return runtime.snapshot() if runtime else {}
 
 
-func _emit() -> void :
-    var step: Dictionary = _current_step()
-    var text: String = str(step.get("text", ""))
-    mission_changed.emit(has_active_mission(), text, get_objective_position())
+func restore(saved: Dictionary) -> Error:
+	if runtime == null:
+		return ERR_UNCONFIGURED
+	var result := runtime.restore(saved)
+	if result == OK:
+		_sync_objective()
+	return result
+
+
+func _process(delta: float) -> void:
+	if runtime == null:
+		return
+	var objective := runtime.current_objective()
+	if int(objective.get("objective_type", -1)) != MissionDefinition.ObjectiveType.SURVIVE:
+		_survive_elapsed = 0.0
+		return
+	_survive_elapsed += delta
+	dispatch_event(MissionEventScript.create("survived", "", _survive_elapsed))
+
+
+func _connect_world_events() -> void:
+	if player and player.has_signal("driving_changed"):
+		player.driving_changed.connect(_on_driving_changed)
+	if player and player.has_signal("vehicle_entered"):
+		player.vehicle_entered.connect(_on_vehicle_entered)
+	if player and player.has_signal("interacted"):
+		player.interacted.connect(_on_interacted)
+	if player and player.has_signal("wasted"):
+		player.wasted.connect(_on_player_wasted)
+	if player and player.has_signal("tutorial_action"):
+		player.tutorial_action.connect(mark_tutorial_action)
+	if GameManager and not GameManager.wanted_changed.is_connected(_on_wanted_changed):
+		GameManager.wanted_changed.connect(_on_wanted_changed)
+
+
+func _on_driving_changed(driving: bool) -> void:
+	if driving and not player.has_signal("vehicle_entered"):
+		dispatch_event(MissionEventScript.create("enter_vehicle", "any_vehicle"))
+
+
+func _on_vehicle_entered(entity_id: String) -> void:
+	mark_tutorial_action("enter_drive")
+	dispatch_event(MissionEventScript.create("enter_vehicle", entity_id))
+
+
+func _on_interacted(entity_id: String) -> void:
+	mark_tutorial_action("interact")
+	dispatch_event(MissionEventScript.create("interact", entity_id))
+
+
+func _on_wanted_changed(level: int) -> void:
+	if level == 0:
+		mark_tutorial_action("lose_heat")
+	dispatch_event(MissionEventScript.create("heat_changed", "", level))
+
+
+func _on_marker_reached(target_id: String) -> void:
+	dispatch_event(MissionEventScript.create("reach", target_id, 0.0))
+
+
+func _on_objective_changed(objective_id: String) -> void:
+	if runtime == null:
+		return
+	GameManager.campaign_step = runtime.progress.objective_index
+	GameManager.mission_snapshot = runtime.snapshot()
+	GameManager.save_game()
+	if objective_id == "reach_fish_pier" and _dialogue:
+		_dialogue.start("deacon_intro")
+	elif objective_id == "pier_ambush":
+		_start_pier_ambush()
+	elif objective_id == "safehouse_dialogue" and _dialogue:
+		_dialogue.start("safehouse_wrap")
+	_sync_objective()
+
+
+func _sync_objective() -> void:
+	if runtime == null or runtime.is_completed():
+		_clear_marker()
+		mission_changed.emit(false, "", Vector3.ZERO)
+		return
+	var objective := runtime.current_objective()
+	var position := get_objective_position()
+	if position != Vector3.ZERO:
+		_spawn_marker(
+			position,
+			float(objective.get("radius", 5.0)),
+			str(objective.get("target", ""))
+		)
+	else:
+		_clear_marker()
+	mission_changed.emit(true, str(objective.get("text", "")), position)
+	_emit_tutorial_prompt()
+
+
+func _start_pier_ambush() -> void:
+	_assigned_car = null
+	if world and world.has_method("prepare_mission_getaway_car"):
+		_assigned_car = world.prepare_mission_getaway_car()
+	if (
+		_assigned_car
+		and _assigned_car.has_signal("destroyed")
+		and not _assigned_car.destroyed.is_connected(_on_getaway_destroyed)
+	):
+		_assigned_car.destroyed.connect(_on_getaway_destroyed)
+	_encounter.configure(player, _assigned_car)
+	_encounter.start("pier_ambush")
+	if world and world.has_method("get_wanted_system"):
+		var wanted: Node = world.get_wanted_system()
+		if wanted and wanted.has_method("add_heat"):
+			wanted.add_heat(2)
+
+
+func _on_encounter_failed(_encounter_id: String, reason: String) -> void:
+	dispatch_event(MissionEventScript.create("failed", reason))
+	restart_checkpoint()
+	_encounter.reset("pier_ambush")
+
+
+func _on_getaway_destroyed() -> void:
+	if runtime and runtime.current_objective_id() == "enter_getaway_car":
+		dispatch_event(MissionEventScript.create("failed", "assigned_car_destroyed"))
+		restart_checkpoint()
+		_encounter.reset("pier_ambush")
+
+
+func _on_player_wasted() -> void:
+	if _encounter:
+		_encounter.notify_player_wasted()
+
+
+func _on_dialogue_line(speaker: String, text: String, _audio_path: String) -> void:
+	subtitle_changed.emit(speaker, text)
+
+
+func _emit_tutorial_prompt() -> void:
+	if runtime == null:
+		tutorial_prompt_changed.emit("")
+		return
+	var objective_id := runtime.current_objective_id()
+	var action := ""
+	var prompts := {}
+	if _input_device == "touch":
+		prompts = {
+			"move_look": "Drag the left stick to move · swipe the screen to look",
+			"interact": "Tap USE near Deacon",
+			"attack_aim": "Hold AIM · tap FIRE",
+			"enter_drive": "Tap CAR beside the marked getaway",
+			"map": "Tap MAP to orient yourself",
+			"lose_heat": "Break line of sight until the stars clear",
+			"pause_save": "Tap II to pause and save",
+		}
+	elif _input_device == "gamepad":
+		prompts = {
+			"move_look": "Left stick to move · right stick to look",
+			"interact": "Press the confirm button near Deacon",
+			"attack_aim": "Hold left trigger · press right trigger",
+			"enter_drive": "Press the vehicle button beside the marked getaway",
+			"map": "Press the map button to orient yourself",
+			"lose_heat": "Break line of sight until the stars clear",
+			"pause_save": "Press Menu to pause and save",
+		}
+	else:
+		prompts = {
+			"move_look": "WASD to move · drag the mouse to look",
+			"interact": "Press E near Deacon",
+			"attack_aim": "Right mouse to aim · left mouse to attack",
+			"enter_drive": "Press F beside the marked getaway",
+			"map": "Press M to open the map",
+			"lose_heat": "Break line of sight until the stars clear",
+			"pause_save": "Press Esc to pause and save",
+		}
+	if objective_id == "reach_bethel":
+		action = "move_look"
+	elif objective_id == "interact_deacon":
+		action = "interact"
+	elif objective_id == "pier_ambush":
+		action = "attack_aim"
+	elif objective_id == "enter_getaway_car":
+		action = "enter_drive"
+	elif objective_id == "lose_police_heat":
+		action = "lose_heat"
+	elif objective_id == "reach_safehouse":
+		action = "map"
+	elif objective_id == "safehouse_dialogue":
+		action = "pause_save"
+	var text := "" if action.is_empty() or _tutorial_seen.has(action) else str(prompts[action])
+	tutorial_prompt_changed.emit(text)
+
+
+func _spawn_marker(pos: Vector3, radius: float, target_id: String) -> void:
+	_clear_marker()
+	_marker = JobMarkerScript.new()
+	world.add_child(_marker)
+	_marker.setup(pos, radius, Color(0.95, 0.78, 0.25), player)
+	_marker.reached.connect(func() -> void: _on_marker_reached(target_id))
+
+
+func _clear_marker() -> void:
+	if _marker and is_instance_valid(_marker):
+		_marker.queue_free()
+	_marker = null
+
+
+func _on_runtime_completed(reward: int, effects: Dictionary) -> void:
+	var reward_already_claimed := GameManager.claimed_rewards.has(definition.id)
+	if reward > 0 and not reward_already_claimed:
+		GameManager.add_cash_silent(reward)
+		GameManager.claimed_rewards.append(definition.id)
+	if bool(effects.get("opener_complete", false)):
+		GameManager.opener_complete = true
+	GameManager.campaign_step = definition.objectives.size()
+	GameManager.campaign_done = true
+	GameManager.mission_snapshot = runtime.snapshot()
+	GameManager.record_mission_complete()
+	GameManager.save_game()
+	_clear_marker()
+	mission_changed.emit(false, "Mission complete", Vector3.ZERO)
+	mission_completed.emit(definition.title)
+	GameManager.show_message("Safehouse reached. Welcome to the Narrows. +$%d" % reward)
+
+
+func _on_runtime_failed(reason: String) -> void:
+	if runtime:
+		GameManager.mission_snapshot = runtime.snapshot()
+	GameManager.save_game()
+	mission_failed.emit(reason)
+	GameManager.show_message("Mission failed: %s" % reason)
+
+
+func _load_definition(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {"definition": null, "error": "definition_not_found"}
+	var source := FileAccess.open(path, FileAccess.READ)
+	if source == null:
+		return {"definition": null, "error": "definition_unreadable"}
+	var data: Variant = JSON.parse_string(source.get_as_text())
+	if not data is Dictionary:
+		return {"definition": null, "error": "definition_invalid_json"}
+	return MissionDefinitionScript.parse(data)

@@ -1,57 +1,73 @@
-# The Narrows (QUAHOG)
+# The Narrows Repository Instructions
 
-**The Narrows** — open-world crime game on the real Massachusetts South Coast (2026).
-See `README.md` and `plans/the-narrows.md`. Shippable product: `QUAHOG_GODOT1/`.
+The product is **The Narrows — South Coast · Now**, set in the present day
+(2026). Read `docs/product/source-of-truth.md` and `plans/the-narrows.md` before
+changing player-facing content.
 
-## Cursor Cloud specific instructions
+## Track hierarchy
 
-### What is canonical vs. legacy
+- `QUAHOG_GODOT1/` is the ship target for the Web/mobile product.
+- `QUAHOG_Web/` is a behavior/content reference and deployed comparison build.
+- `MountHope_Unreal/` is a separate premium PC/console research track.
+- `QUAHOG_Unity/`, `QUAHOG_Godot/`, and `QUAHOG_Unreal/` are legacy/reference.
 
-- **`QUAHOG_Web/` is the only canonical, runnable product** (Three.js / React
-  Three Fiber + Rapier, Vite + TypeScript). This is what to run/test for an
-  end-to-end check.
-- **`MountHope_Unreal/` is a separate UE5 PC/console scaffold**, not runnable in
- this sandbox without a local Unreal editor install. Keep it aligned with the
- existing OSM/map concept, but validate it here with repo-local scripts unless
- an Unreal workstation is available.
-- `QUAHOG_Unity/` (Unity 6 C#) and `QUAHOG_Godot/` (Godot GDScript) are
-  **legacy/reference only**. They require the Unity/Godot editors and **cannot
-  be built or run in this sandbox**. The Unity WebGL CI workflow
-  (`.github/workflows/deploy-webgl.yml`) is dormant and needs Unity license
-  secrets.
+Do not describe Web, Unreal, or a legacy directory as the canonical main
+product. Do not claim a Godot feature complete because a reference
+implementation exists elsewhere.
 
-### Running / building the web game (commands live in `QUAHOG_Web/README.md`)
+## Godot workflow
 
-- All web commands run from `QUAHOG_Web/`: `npm run dev` (Vite dev server on
-  http://localhost:5173), `npm run build`, `npm run preview`.
-- **There is no separate lint script.** The type-check IS `tsc`, which runs as
-  the first half of `npm run build` (`tsc && vite build`). Use `npm run build`
-  to lint/type-check.
-- `predev`/`prebuild` automatically run `node scripts/gen_manifests.mjs` (music
-  manifests). It is zero-dependency and safe.
+Use Godot 4.6 stable with GL Compatibility.
 
-### Non-obvious gameplay/runtime notes
+```bash
+cd QUAHOG_GODOT1
+GODOT_BIN=godot bash scripts/verify.sh
+```
 
-- The game starts on a title screen — you must click **NEW GAME**, then click
-  the 3D canvas, before keyboard input (WASD move, `E` enter car, etc.) is
-  captured. Without canvas focus, movement keys do nothing.
-- The world loads from the committed `QUAHOG_Web/public/slice-newbedford.json`
-  (real OSM New Bedford waterfront). **No map-data regeneration is needed to
-  run the game.** Regen pipelines under `quahog-project-files/mapdata/` and
-  `tools/mapgen/` are optional and require network egress to `overpass-api.de`.
-- In local `vite dev` the ground often renders as a bright/over-exposed white
-  plane. This is expected: the Google Static Maps satellite drape is served by
-  a Vercel function (`api/staticmap.ts`) that does NOT run under `vite dev`, so
-  it falls back to the procedural ground under dusk lighting + bloom. It is not
-  a bug or a crash.
-- The Vercel serverless functions in `QUAHOG_Web/api/` (satellite, ElevenLabs
-  TTS/VO, music) only activate on a Vercel deploy with the keys in
-  `QUAHOG_Web/ENV.md`. All of them degrade gracefully when keys are absent, so
-  local dev needs no secrets.
+Until `scripts/verify.sh` lands, `bash build_web.sh` is the historical exporter;
+it is Linux-oriented and not a sufficient local verification gate.
 
-### Legacy C# tooling (optional)
+Requirements:
 
-- `tools/csharp/` headless-compiles/tests the legacy Unity C# without Unity. Its
-  scripts (`compile-check.sh`, `run-tests.sh`) self-install the .NET 8 SDK on
-  first run via `tools/csharp/setup.sh`. Only relevant when touching
-  `QUAHOG_Unity/Assets/Scripts` (see the `compile-check` skill).
+- import, tests, and Web export must all pass;
+- never ignore import errors;
+- preserve current saves through explicit migrations;
+- use testable mission/activity state transitions rather than frame-polled
+  coordinate-only completion;
+- keep keyboard, standard gamepad, and touch paths functional;
+- record the exact deployed commit SHA.
+
+## Reference web workflow
+
+Run from `QUAHOG_Web/`:
+
+```bash
+npm install
+npm test
+npm run build
+```
+
+The web build may require Vercel functions for optional satellite, TTS, and
+music features. Those services must degrade gracefully and are not required by
+the Godot ship target.
+
+## Unreal workflow
+
+Run the repo-local structural gates:
+
+```bash
+python3 MountHope_Unreal/Scripts/validate_scaffold.py
+python3 MountHope_Unreal/Scripts/check_cpp.py
+```
+
+These are not substitutes for a real Unreal Engine 5.8 compile.
+
+## Product constraints
+
+- Player-facing title: The Narrows.
+- Player-facing era: South Coast · Now / 2026.
+- “Mount Hope” is a retired title or an in-world geographic reference only.
+- Ship original fictional brands; real games, vehicles, and weapons are
+  references, not licensed content.
+- Do not expand to new regions before the opening New Bedford vertical-slice
+  gate passes.

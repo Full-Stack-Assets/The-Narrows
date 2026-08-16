@@ -8,16 +8,41 @@ const DARTMOUTH_MALL: = Vector3(-3921.0, 0.0, -378.0)
 const CHAMPION_GYM: = Vector3(-8350.0, 0.0, -49620.0)
 const CAPE_CANAL: = Vector3(-11050.0, 0.0, -47600.0)
 const HERITAGE_MARINA: = Vector3(-10520.0, 0.0, -47420.0)
+const DETAIL_RADIUS: float = 1400.0
 
 
-static func build(parent: Node3D) -> void :
+static func build(parent: Node3D, detail_origin: Vector3 = Vector3.ZERO) -> void :
     var root: = Node3D.new()
     root.name = "HeroHubs"
     parent.add_child(root)
-    _dartmouth_mall(root)
-    _champion_gym(root)
-    _cape_canal(root)
-    _heritage_marina(root)
+    var hubs := [
+        ["Dartmouth Mall", DARTMOUTH_MALL, Callable(HeroHubs, "_dartmouth_mall")],
+        ["Champion City Gym", CHAMPION_GYM, Callable(HeroHubs, "_champion_gym")],
+        ["Cape Cod Canal", CAPE_CANAL, Callable(HeroHubs, "_cape_canal")],
+        ["Heritage Marina", HERITAGE_MARINA, Callable(HeroHubs, "_heritage_marina")],
+    ]
+    for hub in hubs:
+        if detail_origin.distance_to(hub[1]) <= DETAIL_RADIUS:
+            hub[2].call(root)
+        else:
+            _navigation_marker(root, hub[0], hub[1])
+
+
+static func _navigation_marker(root: Node3D, title: String, position: Vector3) -> void:
+    var marker := Node3D.new()
+    marker.name = title.to_pascal_case()
+    marker.position = position
+    root.add_child(marker)
+    var label := Label3D.new()
+    label.text = title.to_upper()
+    label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    label.visibility_range_end = 650.0
+    label.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+    label.modulate = Color(0.74, 0.82, 0.84)
+    label.font_size = 36
+    label.pixel_size = 0.022
+    label.position = Vector3(0.0, 10.0, 0.0)
+    marker.add_child(label)
 
 
 static func _dartmouth_mall(root: Node3D) -> void :

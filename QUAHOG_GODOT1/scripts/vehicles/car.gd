@@ -1,6 +1,10 @@
 extends Node3D
 class_name Car
 
+signal destroyed
+
+var mission_entity_id: String = ""
+var _destroyed_emitted: bool = false
 
 
 
@@ -261,6 +265,7 @@ func place_at(pos: Vector3, yaw_deg: float) -> void :
     _throttle = 0.0
     _steer = 0.0
     body_damage = 0.0
+    _destroyed_emitted = false
     if active:
         _snap_camera()
 
@@ -560,6 +565,9 @@ func _on_body_entered(body: Node) -> void :
         GameManager.show_message("Vehicle damage — body at %d%%" % int(get_damage_percent() * 100.0))
     if body_damage >= MAX_BODY_DAMAGE and GameManager:
         GameManager.show_message("Ride's totaled — grab another car.")
+        if not _destroyed_emitted:
+            _destroyed_emitted = true
+            destroyed.emit()
 
 
 func _check_near_miss(delta: float) -> void :

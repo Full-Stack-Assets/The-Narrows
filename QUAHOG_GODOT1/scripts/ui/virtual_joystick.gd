@@ -22,6 +22,15 @@ func _ready() -> void :
     _center = size / 2.0
     _knob = _center
 
+
+func apply_layout(rect: Rect2) -> void:
+    set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+    position = rect.position
+    custom_minimum_size = rect.size
+    size = rect.size
+    max_radius = minf(rect.size.x, rect.size.y) * 0.36
+
+
 func set_edit_mode(on: bool) -> void :
     edit_mode = on
     if on and _active:

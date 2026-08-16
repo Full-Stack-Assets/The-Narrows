@@ -1,0 +1,37 @@
+name: godot-ci
+
+on:
+  push:
+    paths:
+      - "QUAHOG_GODOT1/**"
+      - ".github/workflows/godot-ci.yml"
+  pull_request:
+    paths:
+      - "QUAHOG_GODOT1/**"
+      - ".github/workflows/godot-ci.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: QUAHOG_GODOT1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot 4.6 and export templates
+        uses: actions/cache@v4
+        with:
+          path: QUAHOG_GODOT1/.vercel-godot
+          key: godot-4.6-stable-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('QUAHOG_GODOT1/.godot-templates/web_nothreads_release.zip') }}
+
+      - name: Import, test, and export
+        run: bash build_web.sh
+
+      - name: Upload verified Web build
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: the-narrows-web
+          path: QUAHOG_GODOT1/build/web
+          if-no-files-found: error

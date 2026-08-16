@@ -24,17 +24,20 @@ func _build(color: Color) -> void :
 
     _beam = MeshInstance3D.new()
     var cyl: = CylinderMesh.new()
-    cyl.top_radius = radius * 0.9
-    cyl.bottom_radius = radius * 0.9
-    cyl.height = 14.0
+    # The interaction radius belongs on the ground ring. Using it for the
+    # vertical beacon produced an opaque 18–25 m wall that hid the destination.
+    var beacon_radius := clampf(radius * 0.08, 0.55, 1.15)
+    cyl.top_radius = beacon_radius * 0.35
+    cyl.bottom_radius = beacon_radius
+    cyl.height = 9.0
     _beam.mesh = cyl
-    _beam.position.y = 7.0
+    _beam.position.y = 4.5
     var mat: = StandardMaterial3D.new()
-    mat.albedo_color = Color(color.r, color.g, color.b, 0.22)
+    mat.albedo_color = Color(color.r, color.g, color.b, 0.08)
     mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
     mat.emission_enabled = true
     mat.emission = color
-    mat.emission_energy_multiplier = 1.6
+    mat.emission_energy_multiplier = 0.45
     mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
     mat.cull_mode = BaseMaterial3D.CULL_DISABLED
     _beam.material_override = mat

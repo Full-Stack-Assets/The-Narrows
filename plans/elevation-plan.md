@@ -23,7 +23,9 @@ The Narrows is past the “tech demo” stage and into a **playable open-world c
 2. **Content depth** — delivery jobs exist; story missions, factions, and character beats from the bible are mostly unbuilt.
 3. **World still feels procedural** — buildings are extruded blocks; hero landmarks, interiors, and set dressing are thin.
 4. **Juice & audio gaps** — footsteps, horn, headlights, impact polish, district ambience.
-5. **No single “north star”** — web and Godot diverge; improvements should land in web first, then port to Godot (per `plans/mount-hope.md`).
+5. **North-star drift** — web, Godot, and Unreal declarations diverged. New
+   main-product work lands in the Godot ship target; web is consulted as the
+   behavior/content reference.
 
 ---
 

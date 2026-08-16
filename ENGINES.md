@@ -1,55 +1,48 @@
-# Engine reconciliation
+# Engine Reconciliation
 
-This repo accumulated **three** engine tracks for the same vertical slice. As of
-this reconciliation, there is one canonical engine; the rest are reference.
+This repository contains several implementations created during prototyping.
+They do not share canonical status.
 
 ## Decision
 
-**Canonical: `QUAHOG_Web/` — Three.js / React Three Fiber.**
+`QUAHOG_GODOT1/` is the **The Narrows ship target**.
 
-Rationale:
-- It matches the locked engine decision: *Web 3D, buildable live in-session,
-  browser-playable.*
-- It runs on **real** OpenStreetMap data for the New Bedford waterfront (316
-  buildings, 561 roads, 15 landmarks) and is **already deployed**
-  (https://projectsouthcoast.vercel.app).
+- Engine: Godot 4.6 stable.
+- Renderer: GL Compatibility.
+- Platforms in current scope: Web and mobile browser.
+- Product title: The Narrows.
+- Setting: Massachusetts South Coast, present day (2026).
 
-## New PC/console track
+This decision records the later June 26 Godot pivot in `plans/mount-hope.md`
+and supersedes the June 21 web-canonical declaration that remained in older
+root documentation.
 
-`MountHope_Unreal/` is a separate Unreal Engine 5 vertical-slice scaffold for
-the premium PC/console direction. It does not replace the current runnable web
-slice in this sandbox; it captures the next product direction: single-player,
-GTA-like open-world crime structure, photoreal presentation, heavy cinematic
-vehicles, OSM-grounded map import, missions, NPCs, economy, and dialogue.
+## Track roles
 
-## What the other tracks were
+| Track | Status | Validation |
+|---|---|---|
+| `QUAHOG_GODOT1/` | **Ship target** | strict Godot import, tests, Web export, browser release matrix |
+| `QUAHOG_Web/` | Reference/deployed comparison | `npm test`, `npm run build`, browser smoke |
+| `MountHope_Unreal/` | Separate premium PC/console research track | repo static gates plus real UE 5.8 compile on an Unreal workstation |
+| `QUAHOG_Unity/` | Legacy | no main-product completion claims |
+| `QUAHOG_Godot/` | Legacy predecessor | no main-product completion claims |
+| `QUAHOG_Unreal/` | Legacy predecessor | no main-product completion claims |
 
-| Track | Engine | Status | Notes |
-|-------|--------|--------|-------|
-| `QUAHOG_Web/` | Three.js / R3F + Rapier | **canonical** | real data, deployed, walk/drive/collision + street life |
-| `MountHope_Unreal/` | Unreal Engine 5 | PC/console scaffold | separate vertical-slice track; requires Unreal editor |
-| `QUAHOG_Unreal/` | Unreal Engine 5.8 | legacy | earlier UE bootstrap; framework merged into `MountHope_Unreal/` — see `QUAHOG_Unreal/LEGACY.md` |
-| `QUAHOG_Unity/` (PR #18) | Unity C# → WebGL | legacy | same slice idea; data was a placeholder grid; needs the Unity editor to build |
-| `QUAHOG_Godot/` | Godot GDScript | legacy | earlier port; predates the web decision |
+## Cross-track rules
 
-## What was salvaged from the Unity slice (PR #18)
-
-Ported forward into `QUAHOG_Web/` rather than kept as C#:
-
-- **Street life** — `StreetLife.cs` (kinematic wandering pedestrians + decorative
-  patrol cars) → `QUAHOG_Web/src/world/StreetLife.tsx`, retargeted to follow the
-  real OSM road network.
-- **Car feel** — arcade tuning constants from `CarController.cs` (top/reverse
-  speed, steering rate, lateral grip) informed the web car's tuning.
-
-Not ported (Unity-specific, kept only as reference):
-- `GisCity.cs` / `GeoJson.cs` / `EarClipping.cs` — the web pipeline does this in
-  Python (`quahog-project-files/mapdata/make_slice.py`) + R3F.
-- `tools/csharp/` headless compile/test sandbox and the `compile-check` skill.
-- `tools/mapgen/fetch_osm.py` — same Overpass source as the canonical pipeline.
+- Port behavior and content deliberately; do not develop every feature in all
+  engines at once.
+- Shared story and map data may be reused, but runtime-specific code stays in
+  its track.
+- A working reference-web feature is not evidence that the Godot ship target
+  is complete.
+- Unreal work does not replace the browser/mobile ship target without a new,
+  explicit product decision.
+- Every release record identifies track, commit SHA, test evidence, and URL or
+  package.
 
 ## Map pipeline
 
-Canonical: `quahog-project-files/mapdata/` (`split_layers.py`, `bake_meshes.py`,
-`make_slice.py`) → real geometry for both cities, plus the web slice blockout.
-`tools/mapgen/` is the older Unity-targeted fetcher and is superseded for web.
+`quahog-project-files/mapdata/` is the shared source pipeline. Godot consumes
+the committed derived data under `QUAHOG_GODOT1/data/map/`. Regeneration is not
+required for ordinary game development.

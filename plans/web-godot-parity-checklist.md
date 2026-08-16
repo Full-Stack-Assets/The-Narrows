@@ -1,6 +1,7 @@
 # Web → Godot Replication Checklist
 
-Spreadsheet-style inventory for porting **QUAHOG_Web** (canonical reference) into **QUAHOG_GODOT1** (ship target).  
+Spreadsheet-style inventory for porting the **QUAHOG_Web** behavior/content
+reference into **QUAHOG_GODOT1**, the ship target.
 Baseline: `main` @ elevation Tier 12 + merged web photoreal (#23).
 
 **Legend**
@@ -349,6 +350,7 @@ These already exceed or differ from web in useful ways:
 2. Read the **Web files** column as the spec.  
 3. Implement in the **Godot counterpart** path (or create it).  
 4. Update the **Parity** column when done.  
-5. Cross-check against `plans/smoke-test-checklist.md` and `npm run build` / `build_web.sh`.
+5. Cross-check against `plans/smoke-test-checklist.md` and run
+   `GODOT_BIN=godot bash QUAHOG_GODOT1/scripts/verify.sh`.
 
 *Generated from codebase audit on `main` (post Tier 12 + photoreal merge).*

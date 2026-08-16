@@ -1,0 +1,17 @@
+{
+  "id": "new_bedford_race",
+  "title": "Whaling City Circuit",
+  "mode": "car",
+  "time_limit": 150.0,
+  "reward": 350,
+  "start_position": [-250.0, 0.5, -100.0],
+  "start_radius": 10.0,
+  "start_yaw": 0.0,
+  "checkpoints": [
+    {"id": "route_18", "position": [-150.0, 0.5, -125.0], "radius": 14.0},
+    {"id": "state_pier", "position": [-65.0, 0.5, -20.0], "radius": 14.0},
+    {"id": "county_street", "position": [-170.0, 0.5, 105.0], "radius": 14.0},
+    {"id": "mill_turn", "position": [-345.0, 0.5, 55.0], "radius": 14.0},
+    {"id": "finish", "position": [-250.0, 0.5, -100.0], "radius": 14.0}
+  ]
+}

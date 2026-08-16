@@ -57,6 +57,10 @@ var _font: Font
 var _road_cells: Dictionary = {}
 var _landmarks: Array = []          # [{name:String, pos:Vector2(x,z), hero:bool}]
 var _loaded: bool = false
+var _travel_scroll: ScrollContainer = null
+var _travel_column: VBoxContainer = null
+var _close_button: Button = null
+var _cheats_button: Button = null
 
 
 func bind(p_player: Node3D, p_jobs: Node) -> void :
@@ -70,51 +74,57 @@ func _ready() -> void :
     mouse_filter = Control.MOUSE_FILTER_STOP
     _font = load("res://assets/fonts/noto_serif.ttf")
 
-    var close_btn: = Button.new()
-    close_btn.text = "✕ CLOSE"
-    close_btn.focus_mode = Control.FOCUS_NONE
-    close_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-    close_btn.offset_left = -168
-    close_btn.offset_right = -28
-    close_btn.offset_top = 40
-    close_btn.offset_bottom = 96
-    close_btn.custom_minimum_size = Vector2(140, 56)
+    _close_button = Button.new()
+    _close_button.text = "✕ CLOSE"
+    _close_button.focus_mode = Control.FOCUS_NONE
+    _close_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+    _close_button.offset_left = -168
+    _close_button.offset_right = -28
+    _close_button.offset_top = 40
+    _close_button.offset_bottom = 96
+    _close_button.custom_minimum_size = Vector2(140, 56)
     if _font:
-        close_btn.add_theme_font_override("font", _font)
-    close_btn.add_theme_font_size_override("font_size", 26)
-    close_btn.pressed.connect(func(): visible = false)
-    add_child(close_btn)
+        _close_button.add_theme_font_override("font", _font)
+    _close_button.add_theme_font_size_override("font_size", 26)
+    _close_button.pressed.connect(func(): visible = false)
+    add_child(_close_button)
 
     # In-game CHEATS / test-tools, left of CLOSE.
-    var cheats_btn: = Button.new()
-    cheats_btn.text = "⚙ CHEATS"
-    cheats_btn.focus_mode = Control.FOCUS_NONE
-    cheats_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-    cheats_btn.offset_left = -340
-    cheats_btn.offset_right = -184
-    cheats_btn.offset_top = 40
-    cheats_btn.offset_bottom = 96
-    cheats_btn.custom_minimum_size = Vector2(156, 56)
+    _cheats_button = Button.new()
+    _cheats_button.text = "⚙ CHEATS"
+    _cheats_button.focus_mode = Control.FOCUS_NONE
+    _cheats_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+    _cheats_button.offset_left = -340
+    _cheats_button.offset_right = -184
+    _cheats_button.offset_top = 40
+    _cheats_button.offset_bottom = 96
+    _cheats_button.custom_minimum_size = Vector2(156, 56)
     if _font:
-        cheats_btn.add_theme_font_override("font", _font)
-    cheats_btn.add_theme_font_size_override("font_size", 24)
-    cheats_btn.pressed.connect(_open_cheats)
-    add_child(cheats_btn)
+        _cheats_button.add_theme_font_override("font", _font)
+    _cheats_button.add_theme_font_size_override("font_size", 24)
+    _cheats_button.pressed.connect(_open_cheats)
+    add_child(_cheats_button)
 
     # Region fast-travel column (top-left): jump anywhere on the South Coast.
-    var col: = VBoxContainer.new()
-    col.add_theme_constant_override("separation", 8)
-    col.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-    col.offset_left = 36
-    col.offset_top = 96
-    add_child(col)
+    _travel_scroll = ScrollContainer.new()
+    _travel_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+    _travel_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+    _travel_scroll.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE)
+    _travel_scroll.offset_left = 24
+    _travel_scroll.offset_top = 96
+    _travel_scroll.offset_right = 348
+    _travel_scroll.offset_bottom = -24
+    add_child(_travel_scroll)
+    _travel_column = VBoxContainer.new()
+    _travel_column.add_theme_constant_override("separation", 8)
+    _travel_scroll.add_child(_travel_column)
     var hdr: = Label.new()
     hdr.text = "TRAVEL"
     if _font:
         hdr.add_theme_font_override("font", _font)
     hdr.add_theme_font_size_override("font_size", 22)
     hdr.add_theme_color_override("font_color", Color(0.96, 0.86, 0.6))
-    col.add_child(hdr)
+    _travel_column.add_child(hdr)
     for d in REGIONS:
         var dp: Vector2 = d["pos"]
         var btn: = Button.new()
@@ -125,7 +135,30 @@ func _ready() -> void :
             btn.add_theme_font_override("font", _font)
         btn.add_theme_font_size_override("font_size", 22)
         btn.pressed.connect(_travel_to.bind(dp))
-        col.add_child(btn)
+        _travel_column.add_child(btn)
+    get_viewport().size_changed.connect(_apply_responsive_layout)
+    call_deferred("_apply_responsive_layout")
+
+
+func _apply_responsive_layout() -> void:
+    var viewport_size := get_viewport().get_visible_rect().size
+    var compact := viewport_size.y < 600.0 or viewport_size.x < 1000.0
+    var button_height := 44.0 if compact else 60.0
+    var column_width := minf(300.0, viewport_size.x * 0.38)
+    if _travel_scroll:
+        _travel_scroll.offset_right = _travel_scroll.offset_left + column_width
+        _travel_scroll.offset_top = 72.0 if compact else 96.0
+    if _travel_column:
+        for child in _travel_column.get_children():
+            if child is Button:
+                child.custom_minimum_size = Vector2(column_width - 8.0, button_height)
+                child.add_theme_font_size_override("font_size", 18 if compact else 22)
+    if _close_button and _cheats_button:
+        var top := 12.0 if compact else 40.0
+        _close_button.offset_top = top
+        _close_button.offset_bottom = top + 52.0
+        _cheats_button.offset_top = top
+        _cheats_button.offset_bottom = top + 52.0
 
 
 func _open_cheats() -> void :
@@ -157,9 +190,18 @@ func _process(_delta: float) -> void :
 
 
 func _gui_input(event: InputEvent) -> void :
-    if not (event is InputEventMouseButton and (event as InputEventMouseButton).pressed):
+    var pressed := (
+        event is InputEventMouseButton and (event as InputEventMouseButton).pressed
+    ) or (
+        event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed
+    )
+    if not pressed:
         return
-    var mb: = event as InputEventMouseButton
+    var pointer_position: Vector2 = (
+        (event as InputEventMouseButton).position
+        if event is InputEventMouseButton
+        else (event as InputEventScreenTouch).position
+    )
     if player == null or not is_instance_valid(player):
         return
     # Fast-travel ONLY when a tap lands on a named destination — empty taps do
@@ -171,7 +213,7 @@ func _gui_input(event: InputEvent) -> void :
     for d in DESTINATIONS:
         var dp: Vector2 = d["pos"]
         var screen: Vector2 = cpx + (dp - Vector2(center.x, center.z)) * scale
-        if mb.position.distance_to(screen) <= SNAP_PX:
+        if pointer_position.distance_to(screen) <= SNAP_PX:
             var target: = Vector3(dp.x, center.y, dp.y)
             if player.has_method("fast_travel_to"):
                 player.fast_travel_to(target)
@@ -183,13 +225,13 @@ func _gui_input(event: InputEvent) -> void :
     # too, so you can fast-travel anywhere on the South Coast straight from the map.
     for rd in REGIONS:
         var rp: Vector2 = rd["pos"]
-        if mb.position.distance_to(_region_screen(rp, center, scale, cpx)) <= SNAP_PX + 8.0:
+        if pointer_position.distance_to(_region_screen(rp, center, scale, cpx)) <= SNAP_PX + 8.0:
             _travel_to(rp)
             return
     # Cheat: teleport to wherever you tap (not just named areas).
     if GameManager and GameManager.cheat_teleport_anywhere:
-        var wx: float = center.x + (mb.position.x - cpx.x) / scale
-        var wz: float = center.z + (mb.position.y - cpx.y) / scale
+        var wx: float = center.x + (pointer_position.x - cpx.x) / scale
+        var wz: float = center.z + (pointer_position.y - cpx.y) / scale
         _travel_to(Vector2(wx, wz))
 
 
@@ -309,5 +351,5 @@ func _draw() -> void :
     draw_circle(cpx, 7.0, Color(1, 1, 1), false, 2.0)
 
     if _font:
-        draw_string(_font, Vector2(40, 64), "MOUNT HOPE — MAP", HORIZONTAL_ALIGNMENT_LEFT, -1, 40, Color(0.96, 0.86, 0.6))
+        draw_string(_font, Vector2(40, 64), "THE NARROWS — SOUTH COAST", HORIZONTAL_ALIGNMENT_LEFT, -1, 40, Color(0.96, 0.86, 0.6))
         draw_string(_font, Vector2(40, size.y - 36), "Tap a place name (gold = nearby · blue = area) to fast-travel · ✕ or M to close", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.82, 0.82, 0.82))

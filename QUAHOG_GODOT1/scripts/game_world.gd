@@ -27,6 +27,8 @@ const DinerInteriorScript: = preload("res://scripts/world/diner_interior.gd")
 const DinerMenuScript: = preload("res://scripts/ui/diner_menu.gd")
 const NeonSignsScript: = preload("res://scripts/world/neon_signs.gd")
 const HeroHubsScript: = preload("res://scripts/world/hero_hubs.gd")
+const BoatScene := preload("res://scenes/boat.tscn")
+const StreetRaceScript := preload("res://scripts/activities/street_race.gd")
 
 # Cars everywhere: every parked car is a real, takeable drivable car (parked
 # cars are frozen/dormant in car.gd, so a full map costs almost nothing until you
@@ -84,6 +86,7 @@ var _tex_concrete: Texture2D
 # the start and recurs each cycle.
 const DAY_LENGTH: float = 600.0     # seconds for a full day→night→day loop
 var _sun: DirectionalLight3D = null
+var _fill_light: DirectionalLight3D = null
 var _env: Environment = null
 var _day_phase: float = 0.0
 
@@ -117,9 +120,12 @@ var _job_manager: Node = null
 var _wanted_system: Node = null
 var _story_mission: Node = null
 var _water_hazard: Node = null
+var _boat: Node3D = null
+var _activities: Array = []
 var _ambient_player: AudioStreamPlayer = null
 var _tod_life_t: float = 0.0
 var _day_phase_override_pending: bool = false
+var _diner_built: bool = false
 
 
 func get_wanted_system() -> Node:
@@ -164,37 +170,88 @@ func _ready() -> void :
     _tex_concrete = load("res://assets/textures/floors/concrete_sidewalk.png")
 
     _setup_environment()
+    _setup_weather()
+    _setup_gloria_flood()
     if GameManager:
         GameManager.graphics_quality_changed.connect(_apply_graphics_quality)
     _build_city()
+    if _city and _city.has_method("build_authored_core"):
+        var authored_core: Node3D = _city.build_authored_core(self)
+        if authored_core == null or not authored_core.has_node("SeamensBethel") or not authored_core.has_node("FishPier"):
+            push_error("New Bedford authored core failed its runtime landmark contract.")
+        else:
+            print(
+                "DISTRICT_CORE_READY bethel=%s pier=%s nodes=%d"
+                % [
+                    authored_core.get_node("SeamensBethel").global_position,
+                    authored_core.get_node("FishPier").global_position,
+                    authored_core.get_child_count(),
+                ]
+            )
+            var district_dressing: Node3D = _city.populate_authored_dressing(self)
+            if district_dressing == null:
+                push_error("New Bedford opening-route dressing failed its core runtime contract.")
+            else:
+                print("DISTRICT_CORE_DRESSING_READY nodes=%d" % district_dressing.get_child_count())
+    if StartupMetrics:
+        StartupMetrics.mark("core_map_ready")
     _apply_graphics_quality()
+    _spawn_player()
+    if StartupMetrics:
+        StartupMetrics.mark("player_ready")
+    if _player.has_signal("shots_fired"):
+        _player.shots_fired.connect(_on_shots_fired)
+    _build_hud()
+    _build_systems()
+    _build_diner()
+    if StartupMetrics:
+        StartupMetrics.mark("world_interactive")
+    call_deferred("_start_deferred_city")
+
+
+func _start_deferred_city() -> void:
+    await get_tree().process_frame
+    if DeferredContent:
+        await DeferredContent.ensure_loaded()
+    if _city and _city.has_method("populate_deferred_district_models"):
+        var dressing: Node3D = _city.populate_deferred_district_models(self)
+        if dressing == null:
+            push_error("New Bedford deferred model dressing failed its runtime contract.")
+        else:
+            print("DISTRICT_DEFERRED_MODELS_READY nodes=%d" % dressing.get_child_count())
+    if _city and _city.has_method("stream_buildings"):
+        _city.stream_buildings(_player.global_position)
+    await get_tree().process_frame
     _place_cars()
+    _build_activities()
+    await get_tree().process_frame
     _spawn_traffic()
+    await get_tree().process_frame
     _place_streetlights()
     _place_landmark_beacons()
+    await get_tree().process_frame
     _spawn_contacts()
     _spawn_npcs()
-    _spawn_player()
     for tc in _traffic:
         if is_instance_valid(tc):
             tc.player = _player
     for npc in _npcs:
         if is_instance_valid(npc):
             npc.player = _player
-    if _player.has_signal("shots_fired"):
-        _player.shots_fired.connect(_on_shots_fired)
-    _build_hud()
-    _build_systems()
+    for contact in _contacts:
+        if is_instance_valid(contact):
+            contact.job_manager = _job_manager
+    await get_tree().process_frame
     _spawn_pickups()
     _spawn_scrimshaw()
     _spawn_shops()
     _build_shop_menu()
-    _build_diner()
     NeonSignsScript.build(self)
     HeroHubsScript.build(self)
     _start_audio()
-    _setup_weather()
-    _setup_gloria_flood()
+    if _city and _city.has_method("build_distant_world"):
+        await get_tree().process_frame
+        _city.build_distant_world(self)
     call_deferred("_apply_tod_life")
 
 
@@ -384,6 +441,14 @@ func _setup_environment() -> void :
     sun.rotation_degrees = Vector3(-26.0, 52.0, 0.0)
     add_child(sun)
     _sun = sun
+    var fill := DirectionalLight3D.new()
+    fill.name = "SkyFill"
+    fill.light_color = Color(0.42, 0.56, 0.72)
+    fill.light_energy = 0.34
+    fill.shadow_enabled = false
+    fill.rotation_degrees = Vector3(-38.0, -128.0, 0.0)
+    add_child(fill)
+    _fill_light = fill
     _apply_day_night()
 
 
@@ -505,6 +570,8 @@ func _apply_day_night() -> void :
     _sun.light_color = warm.lerp(noon, daylight)
     # Much brighter floors so dusk/night reads clearly instead of near-black.
     _sun.light_energy = lerp(0.6, 1.4, daylight)
+    if _fill_light:
+        _fill_light.light_energy = lerp(0.44, 0.2, daylight)
     _env.ambient_light_energy = lerp(0.85, 1.15, daylight)
     _env.background_energy_multiplier = lerp(0.75, 1.1, daylight)
     # Lighter haze overall (it was crushing the foreground to black).
@@ -526,6 +593,12 @@ func _apply_day_night() -> void :
     for lamp in get_tree().get_nodes_in_group("mooring_light"):
         if lamp is OmniLight3D:
             (lamp as OmniLight3D).light_energy = lamp_e * 0.55
+    for lamp in get_tree().get_nodes_in_group("authored_lantern"):
+        if lamp is OmniLight3D:
+            (lamp as OmniLight3D).light_energy = lerp(1.35, 0.12, daylight)
+    for lamp in get_tree().get_nodes_in_group("authored_streetlight"):
+        if lamp is OmniLight3D:
+            (lamp as OmniLight3D).light_energy = lerp(2.2, 0.0, daylight)
     var neon_e: float = clampf(1.0 - daylight, 0.0, 1.0) * 1.6
     for lamp in get_tree().get_nodes_in_group("neon_light"):
         if lamp is OmniLight3D:
@@ -767,17 +840,46 @@ func _place_streetlights() -> void :
 func _spawn_contacts() -> void :
 
     var spots: = [
-        [_city.mission_giver_pos if _city else Vector3(12, 0, 14), _city.mission_giver_rot if _city else 200.0], 
+        [Vector3(-272.0, 0.0, -106.0), 180.0],
         [Vector3(58.0, 0, 50.0), 220.0], 
         [Vector3(-54.0, 0, -46.0), 30.0], 
     ]
-    for s in spots:
+    for index in spots.size():
+        var s: Array = spots[index]
         var contact: = Node3D.new()
         contact.set_script(MISSION_GIVER_SCRIPT)
+        if index == 0:
+            contact.name = "Deacon"
+            contact.mission_entity_id = "deacon"
+            contact.interact_prompt = "Talk to Deacon"
         add_child(contact)
         contact.global_position = s[0]
         contact.rotation_degrees.y = s[1]
         _contacts.append(contact)
+
+
+func prepare_mission_getaway_car() -> Node:
+    if _drivable_cars.is_empty():
+        _spawn_drivable_car(
+            {
+                "path": "res://assets/props/vehicles/sedan.glb",
+                "h": 1.5,
+                "name": "Getaway Sedan",
+                "spd": 68.0,
+                "trq": 280.0,
+                "mass": 1000.0,
+            },
+            Vector3(-288.0, 0.0, -92.0),
+            35.0
+        )
+    for car in _drivable_cars:
+        if not is_instance_valid(car):
+            continue
+        car.mission_entity_id = "getaway_car"
+        if car.has_method("place_at"):
+            car.place_at(Vector3(-288.0, 0.0, -92.0), 35.0)
+        return car
+    return null
 
 
 func _build_systems() -> void :
@@ -814,7 +916,7 @@ func _build_systems() -> void :
     var safehouse: = Node3D.new()
     safehouse.set_script(SafehouseZoneScript)
     add_child(safehouse)
-    safehouse.global_position = Vector3(-188.0, 0.0, -40.0)
+    safehouse.global_position = Vector3(-240.0, 0.0, -130.0)
 
     var fronts: = Node3D.new()
     fronts.set_script(BusinessFrontsScript)
@@ -842,6 +944,31 @@ func _build_systems() -> void :
         _hud.bind_story(_story_mission)
     if _story_mission and _story_mission.has_signal("mission_completed"):
         _story_mission.mission_completed.connect(_on_mission_completed)
+
+
+func _build_activities() -> void:
+    if _player == null or _boat != null:
+        return
+    _boat = BoatScene.instantiate()
+    add_child(_boat)
+    if _boat.has_method("place_at"):
+        _boat.place_at(Vector3(160.0, 1.0, -90.0), 0.0)
+    if _player.has_method("register_boats"):
+        _player.register_boats([_boat])
+
+    for definition_path in [
+        "res://data/activities/new_bedford_race.json",
+        "res://data/activities/harbor_run.json",
+    ]:
+        var activity := Node.new()
+        activity.set_script(StreetRaceScript)
+        add_child(activity)
+        if activity.setup(definition_path, _player, self, _boat) == OK:
+            _activities.append(activity)
+        else:
+            activity.queue_free()
+    if _hud and _hud.has_method("bind_activities"):
+        _hud.bind_activities(_activities)
 
 
 func _job_locations() -> Array[Vector3]:
@@ -962,10 +1089,13 @@ func _build_shop_menu() -> void :
 
 
 func _build_diner() -> void :
+    if _diner_built:
+        return
+    _diner_built = true
     var diner: = Node3D.new()
     diner.set_script(DinerInteriorScript)
     add_child(diner)
-    diner.setup(Vector3(-300.0, 0.0, -92.0))
+    diner.setup(Vector3(-300.0, 0.0, -72.0))
     var diner_menu: = CanvasLayer.new()
     diner_menu.set_script(DinerMenuScript)
     add_child(diner_menu)
@@ -997,7 +1127,9 @@ func _spawn_npcs() -> void :
         ["res://assets/characters/pedestrian_male/pedestrian_male.glb", "res://assets/characters/pedestrian_male/pedestrian_male_animations.tres"], 
         ["res://assets/characters/pedestrian_female/pedestrian_female.glb", "res://assets/characters/pedestrian_female/pedestrian_female_animations.tres"], 
     ]
-    for i in _city.npc_spawns.size():
+    var wanted_pedestrians: int = GameManager.pedestrian_count() if GameManager else _city.npc_spawns.size()
+    var pedestrian_count := mini(wanted_pedestrians, _city.npc_spawns.size())
+    for i in pedestrian_count:
         var npc: = CharacterBody3D.new()
         npc.set_script(NPC_SCRIPT)
         var ped = peds[i % peds.size()]
@@ -1015,6 +1147,8 @@ func _spawn_player() -> void :
         _player.global_position = GameManager.player_spawn_override
         if GameManager.has_saved_pos and _player.has_method("set_heading"):
             _player.set_heading(GameManager.saved_yaw)
+            _player.health = clampi(int(GameManager.saved_health), 1, _player.max_health)
+            _player.armor = maxi(int(GameManager.saved_armor), 0)
         # Seed the building stream around the override (e.g. a cheat spawn far from
         # downtown) so you don't drop into an empty area before _process catches up.
         if _city and _city.has_method("stream_buildings"):
